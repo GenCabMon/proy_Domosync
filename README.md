@@ -35,8 +35,12 @@ Adicionalmente, el sistema asegurará que los datos introducidos sean procesados
 
 ### Control de temperatura - Control PI del ventilador
 
-El sistema ajustará la velocidad del ventilador mediante un control PI, basado en las lecturas de temperatura obtenidas cada 2 segundos por un sensor analógico. La velocidad del ventilador se ajustará proporcionalmente en función de valores de referencia predefinidos para mantener una temperatura agradable en el ambiente. Si la temperatura alcanza un límite máximo (por ejemplo, 30°C), el ventilador operará a su máxima velocidad, y si desciende por debajo de un límite mínimo (por ejemplo, 18°C), el ventilador se apagará para optimizar el consumo energético. La comunicación con el sensor de temperatura podría realizarse utilizando protocolo analógico para capturar las variaciones continuas del ambiente, mientras que el control del ventilador podría gestionarse mediante GPIO o PWM
-- LCD para muestreo de estado de sensores y acceso:
+El sistema ajustará la velocidad del ventilador mediante un control PI, basado en las lecturas de temperatura obtenidas cada 2 segundos por un sensor analógico. 
+La velocidad del ventilador se ajustará proporcionalmente en función de valores de referencia predefinidos para mantener una temperatura agradable en el ambiente. 
+Si la temperatura alcanza un límite máximo (por ejemplo, 30°C), el ventilador operará a su máxima velocidad, y si desciende por debajo de un límite mínimo (por ejemplo, 18°C), el ventilador se apagará para optimizar el consumo energético. 
+La comunicación con el sensor de temperatura podría realizarse utilizando protocolo analógico para capturar las variaciones continuas del ambiente, mientras que el control del ventilador podría gestionarse mediante GPIO o PWM.
+
+### LCD para muestreo de estado de sensores y acceso:
 
 El LCD mostrará información relevante sobre el estado del sistema, incluyendo notificaciones de acceso autorizado o denegado y la condición operativa de dispositivos conectados, como el ventilador. 
 El procesamiento de datos garantizará que la pantalla se actualice con un tiempo de respuesta máximo de 2 segundo, brindando al usuario una retroalimentación clara. 
@@ -65,36 +69,50 @@ Si no se detecta movimiento en un lapso de 1 minuto, el sistema apagará automá
 1. Escenario 1: Prueba del Sensor de Ruido (Aplauso)
 
 Condición inicial: La luz del cuarto está apagada.
+
 Acción: Aplaudir cerca del sensor.
+
 Resultado esperado: La luz del cuarto debe encenderse en respuesta al aplauso.
+
 Prueba adicional: Aplaudir nuevamente debe apagar la luz.
 
 2. Escenario 2: Prueba del Sistema de Acceso (Teclado matricial)
 
 Condición inicial: La puerta está cerrada.
+
 Acción: Ingresar un código de 6 dígitos en el teclado matricial.
+
 Resultado esperado: Si el código es correcto, el actuador (servomotor) debe desbloquear la puerta y en la LCD se debe mostrar un mensaje de “Acceso concedido”. Si el código es incorrecto, la puerta debe permanecer cerrada y el LCD debe mostrar “Acceso denegado”.
+
 Pruebas adicionales: Ingresar un código erróneo varias veces para asegurar que el sistema maneja bien los errores de autenticación y el bloqueo de usuarios. 
 Verificar el funcionamiento de las opciones de cambio de contraseña de un residente y agregación o eliminación de usuario de un residente.
 
 3. Escenario 3: Prueba del Control de Temperatura (Ventilador con control PI)
 
 Condición inicial: La temperatura ambiente es baja, y el ventilador está apagado o funcionando a velocidad mínima.
+
 Acción: Simular un aumento en la temperatura ambiente utilizando una fuente de calor controlada cerca del sensor.
+
 Resultado esperado: A medida que la temperatura aumenta, el control PI debe ajustar la velocidad del ventilador de manera gradual para mantener la temperatura estable dentro de un rango definido.
+
 Prueba adicional: Al retirar la fuente de calor, la velocidad del ventilador debe disminuir o apagarse conforme la temperatura vuelva a su nivel normal.
 
 4. Escenario 4: Prueba del Sensor PIR (Movimiento)
 
 Condición inicial: No hay movimiento en la habitación o área cubierta por el sensor PIR, y la luz de la puerta principal está apagada.
+
 Acción: Caminar dentro del área de detección del sensor PIR.
+
 Resultado esperado: La luz de la puerta principal debe activarse un lapso de tiempo breve tras la detección de movimiento.
+
 Prueba adicional: Permanecer quieto o salir del área de detección debe apagar dicha luz después de un minuto de no detectar movimiento.
 
 5. Escenario 5: Prueba de Monitoreo en LCD
 
 Condición inicial: El sistema está encendido y los sensores están activos.
+
 Acción: Monitorear las actividades de cada uno de los sensores mencionados anteriormente, asegurando que la LCD muestre el estado de acceso, el funcionamiento de los sensores de luz, PIR, y temperatura en tiempo real.
+
 Resultado esperado: La LCD debe actualizarse dinámicamente, mostrando el estado del sistema en todo momento sin retrasos de tiempo significativos. 
 El muestreo del estado del sistema debería ser con avisos del estado de cada sensor que se visualicen en la LCD, mostrados en intervalos de tiempo distintos. 
 Mientras que los avisos relacionados con el sistema de acceso interrumpen la visualización de los avisos anteriores sólo cuando se ha realizado un intento de autenticación de usuario, para cualquiera de las opciones disponibles para la persona.
