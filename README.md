@@ -11,6 +11,7 @@ Para la detección de movimiento, se implementa un sensor PIR, el cual activa la
 Todos estos subsistemas están conectados a una pantalla LCD, que muestra el estado de los sensores y el acceso, proporcionando información en tiempo real.
 Así, cada subsistema se comunica con la RP2040, la cual procesa las entradas de los sensores y toma decisiones como encender luces, abrir la puerta o ajustar la ventilación. 
 El diagrama de bloques mostrado a continuación ilustra la interacción entre los componentes principales del proyecto.
+
 ![Diagrama de bloques de conexiones del apartamento inteligente](./images/apto_block_diagram.png)
 
 ## Requisitos funcionales
@@ -67,7 +68,9 @@ Condición inicial: La luz del cuarto está apagada.
 Acción: Aplaudir cerca del sensor.
 Resultado esperado: La luz del cuarto debe encenderse en respuesta al aplauso.
 Prueba adicional: Aplaudir nuevamente debe apagar la luz.
+
 2. Escenario 2: Prueba del Sistema de Acceso (Teclado matricial)
+
 Condición inicial: La puerta está cerrada.
 Acción: Ingresar un código de 6 dígitos en el teclado matricial.
 Resultado esperado: Si el código es correcto, el actuador (servomotor) debe desbloquear la puerta y en la LCD se debe mostrar un mensaje de “Acceso concedido”. Si el código es incorrecto, la puerta debe permanecer cerrada y el LCD debe mostrar “Acceso denegado”.
@@ -75,16 +78,21 @@ Pruebas adicionales: Ingresar un código erróneo varias veces para asegurar que
 Verificar el funcionamiento de las opciones de cambio de contraseña de un residente y agregación o eliminación de usuario de un residente.
 
 3. Escenario 3: Prueba del Control de Temperatura (Ventilador con control PI)
+
 Condición inicial: La temperatura ambiente es baja, y el ventilador está apagado o funcionando a velocidad mínima.
 Acción: Simular un aumento en la temperatura ambiente utilizando una fuente de calor controlada cerca del sensor.
 Resultado esperado: A medida que la temperatura aumenta, el control PI debe ajustar la velocidad del ventilador de manera gradual para mantener la temperatura estable dentro de un rango definido.
 Prueba adicional: Al retirar la fuente de calor, la velocidad del ventilador debe disminuir o apagarse conforme la temperatura vuelva a su nivel normal.
+
 4. Escenario 4: Prueba del Sensor PIR (Movimiento)
+
 Condición inicial: No hay movimiento en la habitación o área cubierta por el sensor PIR, y la luz de la puerta principal está apagada.
 Acción: Caminar dentro del área de detección del sensor PIR.
 Resultado esperado: La luz de la puerta principal debe activarse un lapso de tiempo breve tras la detección de movimiento.
 Prueba adicional: Permanecer quieto o salir del área de detección debe apagar dicha luz después de un minuto de no detectar movimiento.
+
 5. Escenario 5: Prueba de Monitoreo en LCD
+
 Condición inicial: El sistema está encendido y los sensores están activos.
 Acción: Monitorear las actividades de cada uno de los sensores mencionados anteriormente, asegurando que la LCD muestre el estado de acceso, el funcionamiento de los sensores de luz, PIR, y temperatura en tiempo real.
 Resultado esperado: La LCD debe actualizarse dinámicamente, mostrando el estado del sistema en todo momento sin retrasos de tiempo significativos. 
