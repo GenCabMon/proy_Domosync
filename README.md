@@ -16,32 +16,29 @@ El diagrama de bloques mostrado a continuación ilustra la interacción entre lo
 
 ## Requisitos funcionales
 
-### Sensor de reconocimiento por aplauso - Luz del cuarto
-
-El sistema activará o desactivará la luz del cuarto mediante el reconocimiento de un aplauso. 
-El sensor de sonido puede comunicarse con la Raspberry Pi Pico mediante comunicación digital directa (GPIO) o comunicación analógica. 
+### Sensor de reconocimiento por aplauso - Lámpara de noche
+El sistema activará o desactivará la lámpara de noche mediante el reconocimiento de un aplauso. 
+El sensor de sonido se comunica con la Raspberry Pi Pico a través de comunicación digital directa (GPIO) o analógica. 
 En el caso de la comunicación digital, el sensor envía una señal binaria cuando detecta un aplauso. 
-Por otro lado, si se utiliza un sensor analógico, este enviará una señal proporcional a la intensidad del sonido, que se conecta a un pin ADC para procesar los datos de manera más precisa, permitiendo ajustar la sensibilidad al aplauso. 
-Cuando la luz esté apagada y se detecte un aplauso, esta se encenderá; si ya está encendida, el aplauso siguiente la apagará. 
-El sistema deberá procesar la entrada de sonido en un tiempo máximo de 1 segundo para asegurar una respuesta fluida y evitar retardos percibidos por el usuario. 
-En caso de detectar múltiples aplausos en menos de 3 segundos, estos serán ignorados para prevenir parpadeos indeseados de la luz.
+Si se emplea un sensor analógico, este enviará una señal proporcional a la intensidad del sonido, la cual se conecta a un pin ADC para procesar los datos con mayor precisión, permitiendo ajustar la sensibilidad del sistema. 
+Cuando la lámpara esté apagada y se detecte un aplauso, esta se encenderá; si ya está encendida, un aplauso la apagará. 
+El sistema debe procesar la entrada de sonido en un tiempo máximo de 1 segundo para asegurar una respuesta rápida y evitar retrasos. 
+Si se detectan múltiples aplausos en menos de 3 segundos, estos serán ignorados para prevenir el parpadeo indeseado de la lámpara.
 
 ### Sistema de acceso mediante teclado - Puerta principal
-
 La puerta principal se desbloqueará mediante la introducción de un código de 4 dígitos en el teclado. 
 Si el usuario no ingresa el código completo en un plazo máximo de 10 segundos, el sistema reiniciará el proceso, obligando a introducir nuevamente la clave. 
-Al ingresar un código incorrecto, se activará una alarma visual y se mostrará "Acceso denegado" en el LCD. La comunicación entre el teclado y la Raspberry Pi Pico se realizará a través de pines GPIO, garantizando una respuesta rápida y precisa. 
+Al ingresar un código incorrecto, se activará una alarma visual y se mostrará "Acceso denegado" en el LCD. 
+La comunicación entre el teclado y la Raspberry Pi Pico se realizará a través de pines GPIO, garantizando una respuesta rápida y precisa. 
 Adicionalmente, el sistema asegurará que los datos introducidos sean procesados de manera eficiente, minimizando errores de lectura.
 
 ### Control de temperatura - Control PI del ventilador
-
 El sistema ajustará la velocidad del ventilador mediante un control PI, basado en las lecturas de temperatura obtenidas cada 2 segundos por un sensor analógico. 
 La velocidad del ventilador se ajustará proporcionalmente en función de valores de referencia predefinidos para mantener una temperatura agradable en el ambiente. 
 Si la temperatura alcanza un límite máximo (por ejemplo, 30°C), el ventilador operará a su máxima velocidad, y si desciende por debajo de un límite mínimo (por ejemplo, 18°C), el ventilador se apagará para optimizar el consumo energético. 
 La comunicación con el sensor de temperatura podría realizarse utilizando protocolo analógico para capturar las variaciones continuas del ambiente, mientras que el control del ventilador podría gestionarse mediante GPIO o PWM.
 
-### LCD para muestreo de estado de sensores y acceso:
-
+### LCD para muestreo de estado de sensores y acceso
 El LCD mostrará información relevante sobre el estado del sistema, incluyendo notificaciones de acceso autorizado o denegado y la condición operativa de dispositivos conectados, como el ventilador. 
 El procesamiento de datos garantizará que la pantalla se actualice con un tiempo de respuesta máximo de 2 segundo, brindando al usuario una retroalimentación clara. 
 La comunicación I2C permitirá la transmisión eficiente de datos entre el microcontrolador y la pantalla, siendo este el protocolo de comunicación del LCD, minimizando interferencias. 
@@ -49,22 +46,31 @@ Para evitar solapamientos, se implementará una separación clara en los tiempos
 Además, se priorizarán las tareas; si se recibe una entrada del teclado, se dará prioridad a su procesamiento, permitiendo que la lectura del sensor de temperatura se posponga brevemente si es necesario, sin comprometer la frecuencia de actualización del sensor. 
 En términos de seguridad, se implementará un control de errores básico para evitar lecturas erróneas o datos incompletos durante la comunicación.
 
-### Sensor PIR - Movimiento para detección de presencia
+### Sensor PIR - Movimiento para detección de presencia en la luz del cuarto
+El sensor PIR se utilizará para detectar movimiento y encender la luz del cuarto al reconocer la presencia de una persona. 
+El sistema garantizará un procesamiento eficiente, con un tiempo de respuesta máximo de 6 segundos, asegurando que la luz se encienda rápidamente al detectar movimiento. 
+El sensor PIR proporciona una salida digital, generando un pulso alto al detectar movimiento y volviendo a bajo cuando no se detecta presencia. 
+Este pulso se conectará directamente a un pin GPIO de la Raspberry Pi Pico, lo que facilita una respuesta rápida. 
+El sistema usará un relé para proporcionar aislamiento eléctrico entre la Raspberry Pi Pico y el circuito de la luz, protegiendo el microcontrolador de picos de voltaje o corrientes que podrían dañarlo. 
+Se implementarán controles para ajustar la sensibilidad del sensor PIR, evitando falsas alarmas causadas por objetos pequeños o mascotas. 
+Si no se detecta movimiento en un lapso de 1 minuto, la luz del cuarto se apagará automáticamente.
 
-El sensor PIR se utilizará para detectar movimiento para encender luz de la calle (Puerta principal) al reconocer la presencia de una persona. 
-Este sistema garantizará un procesamiento de datos eficiente, con un tiempo de respuesta máximo de 6 segundos, asegurando que la luz se encienda rápidamente al detectar movimiento. 
-El sensor PIR proporciona una salida digital, generando un pulso alto al detectar movimiento y volviendo a bajo cuando no hay presencia. 
-Este pulso se conectará directamente a un pin GPIO de la Raspberry Pi Pico, facilitando una respuesta rápida. 
-Haciendo uso de un relé se proporciona aislamiento eléctrico entre la Raspberry Pi Pico y el circuito, protegiendo el microcontrolador de picos de voltaje o corrientes que podrían dañarlo. 
-Además, se planea implementar controles para ajustar la sensibilidad del sensor PIR, evitando así falsas alarmas provocadas por objetos pequeños o animales. 
-Si no se detecta movimiento en un lapso de 1 minuto, el sistema apagará automáticamente la luz.
-
+### Sensor de luz - Control de iluminación para la puerta de la calle
+El sistema utilizará un sensor de luz digital para detectar la intensidad lumínica exterior y encender automáticamente la luz de la calle (puerta principal) al anochecer. 
+Este sensor proporcionará una salida digital, enviando un pulso alto cuando la luz ambiental caiga por debajo de un umbral predefinido (indicado como "noche") y un pulso bajo cuando haya suficiente luz (indicado como "día"). 
+Este pulso se conectará directamente a un pin GPIO de la Raspberry Pi Pico, permitiendo un control rápido y eficiente de la iluminación. 
+El tiempo de respuesta del sistema será de un máximo de 10 segundos para reaccionar a cambios en la luz ambiental. 
+Además de esto el sistema también permitirá ajustes en el umbral de detección de luz, ofreciendo al usuario la posibilidad de definir cuánta oscuridad se necesita para encender la luz.
 
 ## Requisitos NO funcionales
-- [Requisito NO funcional 1]
-- [Requisito NO funcional 2]
-- [Requisito NO funcional 3]
-
+El sistema es propenso a fallos de software por los múltiples sensores empleados no es posible garantizar el correcto funcionamiento de todo el sistema en general. 
+Sin embargo, es posible garantizar ciertas características individuales de los componentes del sistema.
+### Escalabilidad
+La base de datos del sistema de acceso debe ser capaz de almacenar por lo menos hasta 8 usuarios diferentes.
+### Usabilidad
+El LCD facilita al usuario visualizar el estado de los sensores y muestra mensajes que confirman si el acceso ha sido autorizado o denegado.
+### Tiempos de respuesta
+El sistema de acceso debe ser capaz de notificar al usuario si el acceso ha sido autorizado o denegado en menos de 5 segundos después de digitadas la ID y contraseña de usuario.
 ## Escenario de pruebas
 1. Escenario 1: Prueba del Sensor de Ruido (Aplauso)
 
@@ -118,9 +124,103 @@ El muestreo del estado del sistema debería ser con avisos del estado de cada se
 Mientras que los avisos relacionados con el sistema de acceso interrumpen la visualización de los avisos anteriores sólo cuando se ha realizado un intento de autenticación de usuario, para cualquiera de las opciones disponibles para la persona.
 
 ## Presupuesto
-- [Detalle de costos 1]
-- [Detalle de costos 2]
-- [Detalle de costos 3]
+Lista de Componentes y Costos:
+### Raspberry Pi Pico W RP 2040:
+o	Aliexpress: $4250 (precio de bienvenida) + $8700 (envío). Entrega en 15-21días.
+	https://es.aliexpress.com/item/1005002733449265.html?spm=a2g0o.productlist.main.13.3d80ANdyANdyrt&algo_pvid=906cd4d2-fc49-4069-a30b-2b62506e82f2&utparam-url=scene%3Asearch%7Cquery_from%3A
+o	Sigma Electrónica: $35700 + Costo de Envío. 
+	https://www.sigmaelectronica.net/producto/rpi-pico-w/ 
+o	I+D didácticas Electrónica: $44625
+	https://didacticaselectronicas.com/index.php/component/virtuemart/view/productdetails/virtuemart_product_id/12335/virtuemart_category_id/230
+
+### Fuente de Alimentación / Adaptador 5 VDC
+o	Bigtrónica: Adaptador de Voltaje 5V 1A. $6500
+	https://www.bigtronica.com/fuentes-de-alimentacion/adaptadores/220-adaptador-de-voltaje-5v-1a-5053212002206.html
+o	Bigtrónica: Adaptador de Voltaje 5V 3A. $12000.
+	https://www.bigtronica.com/fuentes-de-alimentacion/adaptadores/66-adaptador-de-voltaje-5v-3a-5053212000660.html
+o	I+D didácticas Electrónica: Adaptador 5V – 3A. $13900
+	https://didacticaselectronicas.com/index.php/component/virtuemart/view/productdetails/virtuemart_product_id/6378/virtuemart_category_id/824
+o	Sigma Electrónica: Fuente 5V 2A. $23800
+	https://www.sigmaelectronica.net/producto/fuente5v2aplug/
+
+### Pantalla LCD:
+o	I+D didácticas Electrónica: Display LCD 16x2 interfaz I2C. $17500
+	https://didacticaselectronicas.com/index.php/component/virtuemart/view/productdetails/virtuemart_product_id/11418/virtuemart_category_id/397
+o	I+D didácticas Electrónica: Display LCD 20x4 interfaz I2C Amarillo. $32300
+	https://didacticaselectronicas.com/~didactic/index.php/view/productdetails/virtuemart_product_id/11676/virtuemart_category_id/397
+o	Sigma Electrónica: Display LCD 20x4 Interfaz I2C Amarillo. $35700 + envío
+	https://www.sigmaelectronica.net/producto/lcd2004a-ama-i2c/
+### Teclado Matricial
+o	I+D didácticas Electrónica :Teclado Matricial de Membrana 4x4. $4300
+	https://didacticaselectronicas.com/~didactic/index.php/view/productdetails/virtuemart_product_id/1157/virtuemart_category_id/2
+o	I+D didácticas Electrónica: Teclado matricial de 16 teclas (4x4). $15800
+	https://didacticaselectronicas.com/~didactic/index.php/view/productdetails/virtuemart_product_id/202/virtuemart_category_id/2
+o	Bigtrónica: Teclado Matricial 4x4. $15000
+	https://www.bigtronica.com/sensores/touch/3432-teclado-matricial-4x4-5053212034320.html
+### Motor
+o	Bigtrónica: Motor DC 3 – 6V. $2000
+	https://www.bigtronica.com/motores/dc/2591-motor-42vdc-20000rpm-con-helices-5053212025915.html?search_query=motor&results=317
+-	Hélice
+o	Bigtrónica: Aspa Plástica 50mm. $1700
+	https://www.bigtronica.com/robotica-kit-s/poleas-pinones/2163-aspa-plastica-50mm-5053212021634.html?search_query=helice&results=28
+o	I+D didácticas Electrónica. Ventilador 5V 0.18A 50x50x10mm $7050
+	https://didacticaselectronicas.com/~didactic/index.php/view/productdetails/virtuemart_product_id/7644/virtuemart_category_id/791
+### Sensor de Temperatura
+o	LM35 $10000 + Placa de circuito Impreso $1600 + resistencia + amplificador LM358 $500
+o	Bigtrónica: Sensor de Temperatura y Humedad I2C HTU21D. $18000
+	https://www.bigtronica.com/sensores/temperatura/1175-sensor-de-humedad-y-temperatura-htu21d-5053212011758.html?search_query=sensor+de+temperatura&results=732
+o	Bigtrónica: Módulo Sensor de Temperatura Analógico Termistor NTC. $4500
+	https://www.bigtronica.com/sensores/temperatura/145-sensor-temperatura-analogo-tarjeta-5053212001452.html?search_query=sensor+de+temperatura&results=732
+o	I+D Didáticas y electrónica. Sensor de temperatura y humedad AHT21B $15200
+	https://didacticaselectronicas.com/~didactic/index.php/component/virtuemart/view/productdetails/virtuemart_product_id/11144/virtuemart_category_id/42
+
+### Sensor de movimiento PIR
+o	Bigtrónica. $5200
+	https://www.bigtronica.com/sensores/distancia-movimiento/161-sensor-de-movimiento-pir-5053212001612.html?search_query=PIR&results=35
+o	I+D Didácticas Electrónica: $5200
+
+### Modulo Sensor de Sonido KY -038
+o	Bigtrónica: $3500
+	https://www.bigtronica.com/sensores/sonido/120-tarjeta-sensor-de-sonido-5053212001209.html?search_query=sensor+de+sonido&results=292
+
+### Sensor de Luz LDR:
+o	Bigtrónica: $3200
+	https://www.bigtronica.com/sensores/luz/143-tarjeta-sensor-de-luz-ldr-5053212001438.html?search_query=sensor+de+luz&results=323
+-	MDF 4mm
+o	HomeCenter. MDF 4mm. 1.83x2.44m. $59900. $13.638m²
+	https://www.homecenter.com.co/homecenter-co/product/884235/mdf-4mm-183x244-metros/884235/
+
+--- 
+
+Herramientas y Equipos:
+-	Visual Studio - Raspberry Pi Pico
+-	Fusion 360 – Diseño de Prototipo
+-	Fuentes de Laboratorio
+
+Costos de Diseño y Prototipado:
+-	Cortadora Laser disponible en el laboratorio de prototipado de la Universidad de Antioquia
+-	Software para diseño de corte laser: Fusion 360.
+-	Madera MDF.
+
+--- 
+
+### Presupuesto total.
+Más económico: 
+
+•	Componentes = $55500
+
+•	Prototipado = $60000
+
+•	TOTAL = $115500
+
+Más costoso:
+
+•	Componentes = $147000
+
+•	Prototipado = $60000
+
+•	Total = $207000
+
 
 ## Repositorio
-- [Enlace al repositorio del proyecto]
+https://github.com/GenCabMon/proy_Domosync.git
