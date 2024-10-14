@@ -127,68 +127,84 @@ Mientras que los avisos relacionados con el sistema de acceso interrumpen la vis
 Lista de Componentes y Costos:
 ### Raspberry Pi Pico W RP 2040:
 o	Aliexpress: $4250 (precio de bienvenida) + $8700 (envío). Entrega en 15-21días.
-	https://es.aliexpress.com/item/1005002733449265.html?spm=a2g0o.productlist.main.13.3d80ANdyANdyrt&algo_pvid=906cd4d2-fc49-4069-a30b-2b62506e82f2&utparam-url=scene%3Asearch%7Cquery_from%3A
+	https://es.aliexpress.com/item/1005002733449265.html?spm=a2g0o.productlist.main.13.3d80ANdyANdyrt&algo_pvid=906cd4d2-fc49-4069-a30b-2b62506e82f2&utparam-url=scene%3Asearch%7Cquery_from%3A
+
 o	Sigma Electrónica: $35700 + Costo de Envío. 
-	https://www.sigmaelectronica.net/producto/rpi-pico-w/ 
+	https://www.sigmaelectronica.net/producto/rpi-pico-w/ 
+
 o	I+D didácticas Electrónica: $44625
-	https://didacticaselectronicas.com/index.php/component/virtuemart/view/productdetails/virtuemart_product_id/12335/virtuemart_category_id/230
+	https://didacticaselectronicas.com/index.php/component/virtuemart/view/productdetails/virtuemart_product_id/12335/virtuemart_category_id/230
 
 ### Fuente de Alimentación / Adaptador 5 VDC
 o	Bigtrónica: Adaptador de Voltaje 5V 1A. $6500
-	https://www.bigtronica.com/fuentes-de-alimentacion/adaptadores/220-adaptador-de-voltaje-5v-1a-5053212002206.html
+	https://www.bigtronica.com/fuentes-de-alimentacion/adaptadores/220-adaptador-de-voltaje-5v-1a-5053212002206.html
+
 o	Bigtrónica: Adaptador de Voltaje 5V 3A. $12000.
-	https://www.bigtronica.com/fuentes-de-alimentacion/adaptadores/66-adaptador-de-voltaje-5v-3a-5053212000660.html
+	https://www.bigtronica.com/fuentes-de-alimentacion/adaptadores/66-adaptador-de-voltaje-5v-3a-5053212000660.html
+
 o	I+D didácticas Electrónica: Adaptador 5V – 3A. $13900
-	https://didacticaselectronicas.com/index.php/component/virtuemart/view/productdetails/virtuemart_product_id/6378/virtuemart_category_id/824
+	https://didacticaselectronicas.com/index.php/component/virtuemart/view/productdetails/virtuemart_product_id/6378/virtuemart_category_id/824
+
 o	Sigma Electrónica: Fuente 5V 2A. $23800
-	https://www.sigmaelectronica.net/producto/fuente5v2aplug/
+	https://www.sigmaelectronica.net/producto/fuente5v2aplug/
 
 ### Pantalla LCD:
 o	I+D didácticas Electrónica: Display LCD 16x2 interfaz I2C. $17500
-	https://didacticaselectronicas.com/index.php/component/virtuemart/view/productdetails/virtuemart_product_id/11418/virtuemart_category_id/397
+	https://didacticaselectronicas.com/index.php/component/virtuemart/view/productdetails/virtuemart_product_id/11418/virtuemart_category_id/397
+
 o	I+D didácticas Electrónica: Display LCD 20x4 interfaz I2C Amarillo. $32300
-	https://didacticaselectronicas.com/~didactic/index.php/view/productdetails/virtuemart_product_id/11676/virtuemart_category_id/397
+	https://didacticaselectronicas.com/~didactic/index.php/view/productdetails/virtuemart_product_id/11676/virtuemart_category_id/397
+
 o	Sigma Electrónica: Display LCD 20x4 Interfaz I2C Amarillo. $35700 + envío
-	https://www.sigmaelectronica.net/producto/lcd2004a-ama-i2c/
+	https://www.sigmaelectronica.net/producto/lcd2004a-ama-i2c/
 ### Teclado Matricial
 o	I+D didácticas Electrónica :Teclado Matricial de Membrana 4x4. $4300
-	https://didacticaselectronicas.com/~didactic/index.php/view/productdetails/virtuemart_product_id/1157/virtuemart_category_id/2
+	https://didacticaselectronicas.com/~didactic/index.php/view/productdetails/virtuemart_product_id/1157/virtuemart_category_id/2
+
 o	I+D didácticas Electrónica: Teclado matricial de 16 teclas (4x4). $15800
-	https://didacticaselectronicas.com/~didactic/index.php/view/productdetails/virtuemart_product_id/202/virtuemart_category_id/2
+	https://didacticaselectronicas.com/~didactic/index.php/view/productdetails/virtuemart_product_id/202/virtuemart_category_id/2
+
 o	Bigtrónica: Teclado Matricial 4x4. $15000
-	https://www.bigtronica.com/sensores/touch/3432-teclado-matricial-4x4-5053212034320.html
+	https://www.bigtronica.com/sensores/touch/3432-teclado-matricial-4x4-5053212034320.html
 ### Motor
 o	Bigtrónica: Motor DC 3 – 6V. $2000
-	https://www.bigtronica.com/motores/dc/2591-motor-42vdc-20000rpm-con-helices-5053212025915.html?search_query=motor&results=317
+	https://www.bigtronica.com/motores/dc/2591-motor-42vdc-20000rpm-con-helices-5053212025915.html?search_query=motor&results=317
 -	Hélice
+
 o	Bigtrónica: Aspa Plástica 50mm. $1700
-	https://www.bigtronica.com/robotica-kit-s/poleas-pinones/2163-aspa-plastica-50mm-5053212021634.html?search_query=helice&results=28
+	https://www.bigtronica.com/robotica-kit-s/poleas-pinones/2163-aspa-plastica-50mm-5053212021634.html?search_query=helice&results=28
+
 o	I+D didácticas Electrónica. Ventilador 5V 0.18A 50x50x10mm $7050
-	https://didacticaselectronicas.com/~didactic/index.php/view/productdetails/virtuemart_product_id/7644/virtuemart_category_id/791
+	https://didacticaselectronicas.com/~didactic/index.php/view/productdetails/virtuemart_product_id/7644/virtuemart_category_id/791
 ### Sensor de Temperatura
 o	LM35 $10000 + Placa de circuito Impreso $1600 + resistencia + amplificador LM358 $500
+
 o	Bigtrónica: Sensor de Temperatura y Humedad I2C HTU21D. $18000
-	https://www.bigtronica.com/sensores/temperatura/1175-sensor-de-humedad-y-temperatura-htu21d-5053212011758.html?search_query=sensor+de+temperatura&results=732
+	https://www.bigtronica.com/sensores/temperatura/1175-sensor-de-humedad-y-temperatura-htu21d-5053212011758.html?search_query=sensor+de+temperatura&results=732
+
 o	Bigtrónica: Módulo Sensor de Temperatura Analógico Termistor NTC. $4500
-	https://www.bigtronica.com/sensores/temperatura/145-sensor-temperatura-analogo-tarjeta-5053212001452.html?search_query=sensor+de+temperatura&results=732
+	https://www.bigtronica.com/sensores/temperatura/145-sensor-temperatura-analogo-tarjeta-5053212001452.html?search_query=sensor+de+temperatura&results=732
+
 o	I+D Didáticas y electrónica. Sensor de temperatura y humedad AHT21B $15200
-	https://didacticaselectronicas.com/~didactic/index.php/component/virtuemart/view/productdetails/virtuemart_product_id/11144/virtuemart_category_id/42
+	https://didacticaselectronicas.com/~didactic/index.php/component/virtuemart/view/productdetails/virtuemart_product_id/11144/virtuemart_category_id/42
 
 ### Sensor de movimiento PIR
 o	Bigtrónica. $5200
-	https://www.bigtronica.com/sensores/distancia-movimiento/161-sensor-de-movimiento-pir-5053212001612.html?search_query=PIR&results=35
+	https://www.bigtronica.com/sensores/distancia-movimiento/161-sensor-de-movimiento-pir-5053212001612.html?search_query=PIR&results=35
+
 o	I+D Didácticas Electrónica: $5200
 
 ### Modulo Sensor de Sonido KY -038
 o	Bigtrónica: $3500
-	https://www.bigtronica.com/sensores/sonido/120-tarjeta-sensor-de-sonido-5053212001209.html?search_query=sensor+de+sonido&results=292
+	https://www.bigtronica.com/sensores/sonido/120-tarjeta-sensor-de-sonido-5053212001209.html?search_query=sensor+de+sonido&results=292
 
 ### Sensor de Luz LDR:
 o	Bigtrónica: $3200
-	https://www.bigtronica.com/sensores/luz/143-tarjeta-sensor-de-luz-ldr-5053212001438.html?search_query=sensor+de+luz&results=323
+	https://www.bigtronica.com/sensores/luz/143-tarjeta-sensor-de-luz-ldr-5053212001438.html?search_query=sensor+de+luz&results=323
 -	MDF 4mm
+
 o	HomeCenter. MDF 4mm. 1.83x2.44m. $59900. $13.638m²
-	https://www.homecenter.com.co/homecenter-co/product/884235/mdf-4mm-183x244-metros/884235/
+	https://www.homecenter.com.co/homecenter-co/product/884235/mdf-4mm-183x244-metros/884235/
 
 --- 
 
@@ -204,22 +220,15 @@ Costos de Diseño y Prototipado:
 
 --- 
 
-### Presupuesto total.
+### Presupuesto total
 Más económico: 
-
-•	Componentes = $55500
-
-•	Prototipado = $60000
-
-•	TOTAL = $115500
-
+-	Componentes = $55500
+-	Prototipado = $60000
+-	TOTAL = $115500
 Más costoso:
-
-•	Componentes = $147000
-
-•	Prototipado = $60000
-
-•	Total = $207000
+-	Componentes = $147000
+-	Prototipado = $60000
+-	Total = $207000
 
 
 ## Repositorio
