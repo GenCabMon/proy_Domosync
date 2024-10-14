@@ -125,6 +125,7 @@ Mientras que los avisos relacionados con el sistema de acceso interrumpen la vis
 
 ## Presupuesto
 Lista de Componentes y Costos:
+
 ### Raspberry Pi Pico W RP 2040:
 o	Aliexpress: $4250 (precio de bienvenida) + $8700 (envío). Entrega en 15-21días.
 	https://es.aliexpress.com/item/1005002733449265.html?spm=a2g0o.productlist.main.13.3d80ANdyANdyrt&algo_pvid=906cd4d2-fc49-4069-a30b-2b62506e82f2&utparam-url=scene%3Asearch%7Cquery_from%3A
@@ -157,6 +158,7 @@ o	I+D didácticas Electrónica: Display LCD 20x4 interfaz I2C Amarillo. $32300
 
 o	Sigma Electrónica: Display LCD 20x4 Interfaz I2C Amarillo. $35700 + envío
 	https://www.sigmaelectronica.net/producto/lcd2004a-ama-i2c/
+
 ### Teclado Matricial
 o	I+D didácticas Electrónica :Teclado Matricial de Membrana 4x4. $4300
 	https://didacticaselectronicas.com/~didactic/index.php/view/productdetails/virtuemart_product_id/1157/virtuemart_category_id/2
@@ -166,16 +168,18 @@ o	I+D didácticas Electrónica: Teclado matricial de 16 teclas (4x4). $15800
 
 o	Bigtrónica: Teclado Matricial 4x4. $15000
 	https://www.bigtronica.com/sensores/touch/3432-teclado-matricial-4x4-5053212034320.html
+
 ### Motor
 o	Bigtrónica: Motor DC 3 – 6V. $2000
 	https://www.bigtronica.com/motores/dc/2591-motor-42vdc-20000rpm-con-helices-5053212025915.html?search_query=motor&results=317
 -	Hélice
 
-o	Bigtrónica: Aspa Plástica 50mm. $1700
-	https://www.bigtronica.com/robotica-kit-s/poleas-pinones/2163-aspa-plastica-50mm-5053212021634.html?search_query=helice&results=28
+    o	Bigtrónica: Aspa Plástica 50mm. $1700
+	    https://www.bigtronica.com/robotica-kit-s/poleas-pinones/2163-aspa-plastica-50mm-5053212021634.html?search_query=helice&results=28
 
 o	I+D didácticas Electrónica. Ventilador 5V 0.18A 50x50x10mm $7050
 	https://didacticaselectronicas.com/~didactic/index.php/view/productdetails/virtuemart_product_id/7644/virtuemart_category_id/791
+
 ### Sensor de Temperatura
 o	LM35 $10000 + Placa de circuito Impreso $1600 + resistencia + amplificador LM358 $500
 
@@ -203,8 +207,8 @@ o	Bigtrónica: $3200
 	https://www.bigtronica.com/sensores/luz/143-tarjeta-sensor-de-luz-ldr-5053212001438.html?search_query=sensor+de+luz&results=323
 -	MDF 4mm
 
-o	HomeCenter. MDF 4mm. 1.83x2.44m. $59900. $13.638m²
-	https://www.homecenter.com.co/homecenter-co/product/884235/mdf-4mm-183x244-metros/884235/
+    o	HomeCenter. MDF 4mm. 1.83x2.44m. $59900. $13.638m²
+	    https://www.homecenter.com.co/homecenter-co/product/884235/mdf-4mm-183x244-metros/884235/
 
 --- 
 
