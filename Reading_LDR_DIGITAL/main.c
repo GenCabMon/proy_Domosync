@@ -17,11 +17,12 @@
  * This function initializes the MCU and does an infinite cycle.
  */
 
-#define LDR_PIN 2
-#define LED_OUT_PIN 3
+#define LDR_PIN 16
+#define LED_OUT_PIN 15 
 
 // ISR para manejar flancos de subida y bajada
 void gpio_callback_LDR(uint gpio, uint32_t events) {
+    printf("GPIO %d, event %d\n", gpio, events);
     if (gpio == LDR_PIN) {
         if (events & GPIO_IRQ_EDGE_RISE) {  // Flanco de subida (LOW -> HIGH)
             gpio_put(LED_OUT_PIN, 1);
@@ -37,8 +38,8 @@ int main() {
     stdio_init_all();
 	
 	// Write your initialization code here
-    printf("Digital, measuring GPIO 2\n");
-    printf("LED, output GPIO 3\n");
+    printf("Digital, measuring GPIO 16\n");
+    printf("LED, output GPIO 15\n");
 
     // Initialize the GPIO input pin
     gpio_init(LDR_PIN);
@@ -54,7 +55,7 @@ int main() {
 
 	// Infinite loop. This function shouldn't finish or return
     while (1) {
-        __wfi();
+        tight_loop_contents(); 
     }
 	
     return 0;
