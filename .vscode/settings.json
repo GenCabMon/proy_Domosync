@@ -24,19 +24,6 @@
   "cmake.generator": "Ninja",
   "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
   "files.associations": {
-    "stdlib.h": "c",
-    "time.h": "c",
-    "triqui_functions.h": "c",
-    "controlaccessf.h": "c",
-    "datausers.h": "c",
-    "gpio.h": "c",
-    "timer.h": "c",
-    "stdint.h": "c",
-    "irq.h": "c",
-    "stdio.h": "c",
-    "sync.h": "c",
-    "adc.h": "c",
-    "measurelibs.h": "c"
-  },
-  "C_Cpp.errorSquiggles": "disabled"
+    "*.h": "c"
+  }
 }
