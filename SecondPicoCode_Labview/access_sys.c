@@ -900,7 +900,7 @@ int main()
                                 lcd_string("Usuario bloqueado");
                             }
                             //printf("Acceso denegado\n");
-                            accessState = 1;
+                            accessState = 1;  
                             // led_on(RED_LED);
                             gFlags.B.timeOut = true;
                             IschangeP = 0;

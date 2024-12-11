@@ -10,6 +10,8 @@
 #include "measurelibs.h"   /**< Librería personalizada para realizar mediciones específicas. */
 #include "base_de_datos.h" /**< Librería personalizada para gestionar la base de datos de usuarios. */
 #include "hardware/pwm.h"  /**< Control del módulo PWM en la Raspberry Pi Pico. */
+#include "sens.h"          /**< Librería personalizada de inicialización de sensores */
+#include "configpwm.h"     /**< Librería personalizada de configuración y uso de PWM */
 
 /**
  * @brief Valor de referencia de voltaje para la conversión ADC.
@@ -36,7 +38,6 @@
  */
 #define MAX_SIGNAL_AMPLITUDE 1.6 // Expected max deviation from reference
 
-
 /**
  * @brief Límite de muestras a capturar en el buffer.
  */
@@ -46,112 +47,6 @@
  * @brief Umbral para iniciar la captura de muestras.
  */
 #define THRESHOLD_VALUE 3000 // Umbral para iniciar captura.
-
-/**
- * @brief Divisor de reloj para el ADC con el objetivo de lograr una frecuencia de muestreo de 8 kHz.
- */
-#define ADC_CLKDIV 6000      // Divisor de reloj para lograr una FS de 8 kHz.
-
-/**
- * @brief Número de muestras por cada captura de audio.
- */
-#define SAMPLES 5120      // Numero de muestras por audio capturado
-
-/**
- * @brief Tamaño de la ventana para realizar la Transformada de Fourier de Tiempo Corto (STFT).
- */
-#define TAMANO_VENTANA 64 // Tamaño de la ventana para la STFT
-
-/**
- * @brief Frecuencia de muestreo en Hz.
- */
-#define FS 8000           // frecuencia de muestreo
-
-/**
- * @brief Pin del LED de mesa de noche para encender y apagar.
- */
-#define LED_PIN 13  // Pin led para prender y apagar
-
-/**
- * @brief Pin del LED principal para encender y apagar.
- */
-#define LED_PIN_2 0 // Pin led para prender y apagar
-
-/**
- * @brief Pin de salida del LED del sensor del LDR.
- */
-#define LED_OUT_PIN 15
-
-/**
- * @brief Pin de salida del LED infrarrojo.
- */
-#define LED_OUT_PIN_IR 14
-
-/**
- * @brief Pin del fototransistor (LDR).
- */
-#define LDR_PIN 16
-
-/**
- * @brief Pin del sensor infrarrojo (IR).
- */
-#define IR_PIN 17
-
-/**
- * @brief Pin del botón de entrada.
- */
-#define BUTTON 18
-
-/**
- * @brief Pin del servomotor.
- */
-#define Servo_PIN 19
-
-/**
- * @brief Pin GPIO asociado al ADC.
- */
-#define adc_GPIO 26
-
-/**
- * @brief Valor para rotar el servomotor a la posición de 0°.
- */
-#define ROTATE_0 1000
-
-/**
- * @brief Valor para rotar el servomotor a la posición de 180°.
- */
-#define ROTATE_180 2000
-
-/**
- * @brief Componente entero del divisor de frecuencia del PWM.
- */
-#define PWM_DIV_INTEGER 125
-
-/**
- * @brief Componente fraccionaria del divisor de frecuencia del PWM.
- */
-#define PWM_DIV_FRAC 0
-
-/**
- * @brief Valor máximo del contador para el ciclo de trabajo del PWM.
- */
-#define PWM_TOP_VALUE 19999
-
-
-/**
- * @brief Ciclo de trabajo máximo permitido para el PWM.
- */
-#define MAX_DUTY_CYCLE 0.1
-
-/**
- * @brief Ciclo de trabajo mínimo permitido para el PWM.
- */
-#define MIN_DUTY_CYCLE 0.05
-
-/**
- * @brief Tiempo de anti-rebote en microsegundos.
- */
-#define DEBOUNCE_TIME_US 1000000 // Tiempo de anti-rebote en microsegundos 1 seg
 
 struct Flags  /**< Estructura para almacenar banderas del sistema. */
 {
@@ -183,35 +78,9 @@ int led_state = 0;   /**< Estado del LED principal, 0: apagado, 1: encendido, pa
 int led_state_2 = 0; /**< Estado del LED secundario, 0: apagado, 1: encendido, para alternar cmbios. */
 
 /**
- * @brief Inicializa los GPIOs del LED y el botón.
- */
-void LandB_init();
-
-/**
- * @brief Configura el ADC con los parámetros necesarios.
- * @param ADC_GPIO Pin GPIO utilizado como entrada para el ADC.
- */
-void ADC_init(uint ADC_GPIO);
-
-/**
- * @brief Configura el GPIO para el sensor LDR y su LED asociado.
- */
-void set_up_LDR();
-
-/**
- * @brief Configura el GPIO para el sensor IR y su LED asociado.
- */
-void set_up_IR();
-
-/**
  * @brief Maneja las interrupciones del ADC, almacena datos y actualiza banderas.
  */
 void adc_handler();
-
-/**
- * @brief Configura el tiempo de anti-rebote para evitar interrupciones frecuentes.
- */
-void set_debouncing();
 
 /**
  * @brief Callback de interrupciones para manejar eventos de GPIO.
@@ -219,19 +88,6 @@ void set_debouncing();
  * @param events Evento detectado (flanco de subida o bajada).
  */
 void gpio_callback(uint gpio, uint32_t events);
-
-/**
- * @brief Inicializa el módulo PWM en un pin específico.
- * @param PWM_GPIO Pin GPIO configurado para el módulo PWM.
- */
-void project_pwm_init(uint PWM_GPIO);
-
-/**
- * @brief Establece el ángulo del servomotor mediante PWM.
- * @param PWM_GPIO Pin GPIO del servomotor.
- * @param degree Ángulo en grados para posicionar el servomotor (0 o 90).
- */
-void set_servo_angle(uint PWM_GPIO, uint degree);
 
 /**
  * @brief Función principal del programa que controla el flujo de ejecución.
@@ -245,7 +101,7 @@ void set_servo_angle(uint PWM_GPIO, uint degree);
  */
 int main()
 {
-    // Inicializa  salida serial
+    // Inicializa salida serial
     stdio_init_all();
     sleep_ms(10000); // Espera para inicializar la casa
 
@@ -386,74 +242,6 @@ int main()
     return 0;
 }
 
-void LandB_init()
-{
-    printf("Begin code\n");
-
-    // Inicializamos el GPIO del LED como salida
-    gpio_init(LED_PIN);
-    gpio_set_dir(LED_PIN, GPIO_OUT);
-
-    gpio_init(LED_PIN_2);
-    gpio_set_dir(LED_PIN_2, GPIO_OUT);
-
-    // Initialize the GPIO input pin
-    gpio_init(BUTTON);
-    gpio_set_dir(BUTTON, GPIO_IN); // Set the direction as input
-    gpio_pull_up(BUTTON);          // Enable pull-up
-}
-
-void ADC_init(uint ADC_GPIO)
-{
-    // Configuración del ADC
-    adc_init();
-    adc_gpio_init(ADC_GPIO);   // GPIO 26 como entrada analógica
-    adc_select_input(0); // Selecciona el canal 0 del ADC
-    adc_fifo_setup(
-        true,  // Habilita FIFO
-        false, // No usa DMA
-        1,     // Umbral de FIFO en 1
-        false, // No incluir errores en FIFO
-        false  // No reduce resolución a 8 bits
-    );
-
-    // Configurar el divisor del reloj para una FS de 8 kHz (48 MHz / 6000 = 8 kHz)
-    adc_set_clkdiv((float)ADC_CLKDIV);
-
-    // Configura la interrupción
-    irq_set_exclusive_handler(ADC_IRQ_FIFO, adc_handler);
-    irq_set_priority(ADC_IRQ_FIFO, PICO_HIGHEST_IRQ_PRIORITY);
-    irq_set_enabled(ADC_IRQ_FIFO, true);
-    adc_irq_set_enabled(true);
-
-    // Iniciar el ADC
-    adc_run(true);
-}
-
-void set_up_LDR()
-{
-    // Initialize the GPIO input pin
-    gpio_init(LDR_PIN);
-    gpio_set_dir(LDR_PIN, GPIO_IN); // Set the direction as input
-    gpio_pull_down(LDR_PIN);        // Enable pull-up
-
-    // Initialize the GPIO out pin
-    gpio_init(LED_OUT_PIN);
-    gpio_set_dir(LED_OUT_PIN, GPIO_OUT); // Set the direction as output
-}
-
-void set_up_IR()
-{
-    // Initialize the GPIO input pin
-    gpio_init(IR_PIN);
-    gpio_set_dir(IR_PIN, GPIO_IN); // Set the direction as input
-    gpio_pull_down(IR_PIN);        // Enable pull-up
-
-    // Initialize the GPIO out pin
-    gpio_init(LED_OUT_PIN_IR);
-    gpio_set_dir(LED_OUT_PIN_IR, GPIO_OUT); // Set the direction as output
-}
-
 void adc_handler()
 {
     // Lee la muestra y marca como disponible
@@ -464,19 +252,6 @@ void adc_handler()
     {
         Flags_1.adc_avail = 0;
     }
-}
-
-void set_debouncing()
-{
-    uint64_t current_time = time_us_64(); // Tiempo actual en microsegundos
-
-    // Ignorar interrupciones si están dentro del tiempo de anti-rebote
-    if (current_time - last_interrupt_time < DEBOUNCE_TIME_US)
-    {
-        return;
-    }
-
-    last_interrupt_time = current_time; // Actualizar el tiempo de la última interrupción
 }
 
 void gpio_callback(uint gpio, uint32_t events)
@@ -520,25 +295,4 @@ void gpio_callback(uint gpio, uint32_t events)
         }
     }
     gpio_acknowledge_irq(gpio, events);
-}
-
-void project_pwm_init(uint PWM_GPIO)
-{
-    gpio_init(PWM_GPIO);
-    gpio_set_function(PWM_GPIO, GPIO_FUNC_PWM);
-    uint sliceNum = pwm_gpio_to_slice_num(PWM_GPIO);
-    pwm_config cfg = pwm_get_default_config();
-    pwm_config_set_clkdiv(&cfg, PWM_DIV_INTEGER);
-    pwm_config_set_wrap(&cfg, PWM_TOP_VALUE);
-    pwm_init(sliceNum, &cfg, true);
-}
-
-void set_servo_angle(uint PWM_GPIO, uint degree)
-{
-    const uint count_top = PWM_TOP_VALUE;
-    float duty_cycle = (float)(MIN_DUTY_CYCLE + ((degree + 90) / 180) * (MAX_DUTY_CYCLE - MIN_DUTY_CYCLE));
-    pwm_set_gpio_level(PWM_GPIO, (uint16_t)(duty_cycle * (count_top + 1)));
-
-    uint sliceNum = pwm_gpio_to_slice_num(PWM_GPIO);
-    printf("*** PWM channel: %d ", pwm_get_counter(sliceNum));
 }
