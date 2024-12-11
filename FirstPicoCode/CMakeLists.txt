@@ -7,7 +7,7 @@ set(PICO_SDK_PATH "C:/Program Files/Raspberry Pi/Pico SDK v1.5.1/pico-sdk")
 include(pico_sdk_import.cmake)
 
 # Define the project name and language
-project(measure C CXX)
+project(keypad C CXX)
 
 # Initialize the Raspberry Pi Pico SDK
 pico_sdk_init()
@@ -17,7 +17,7 @@ add_executable(measure
         measure.c
         measurelibs.c
         base_de_datos.c
-        sens.c
+        digiElements.c
         configpwm.c
 )
 
@@ -31,7 +31,7 @@ target_link_libraries(measure
         m
         hardware_irq   # Biblioteca específica para manejo de interrupciones
         hardware_sync  # Biblioteca para funciones de sincronización
-        hardware_pwm   # Biblioteca para configuración y uso de PWM
+        hardware_pwm
 )
 # Configurar la salida estándar (UART y USB)
 pico_enable_stdio_usb(measure 1)

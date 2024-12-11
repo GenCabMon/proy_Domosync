@@ -10,7 +10,7 @@
 #include "measurelibs.h"   /**< Librería personalizada para realizar mediciones específicas. */
 #include "base_de_datos.h" /**< Librería personalizada para gestionar la base de datos de usuarios. */
 #include "hardware/pwm.h"  /**< Control del módulo PWM en la Raspberry Pi Pico. */
-#include "sens.h"          /**< Librería personalizada de inicialización de sensores */
+#include "digiElements.h"  /**< Librería personalizada de inicialización de sensores y actuadores digitales */
 #include "configpwm.h"     /**< Librería personalizada de configuración y uso de PWM */
 
 /**
@@ -38,6 +38,7 @@
  */
 #define MAX_SIGNAL_AMPLITUDE 1.6 // Expected max deviation from reference
 
+
 /**
  * @brief Límite de muestras a capturar en el buffer.
  */
@@ -47,6 +48,31 @@
  * @brief Umbral para iniciar la captura de muestras.
  */
 #define THRESHOLD_VALUE 3000 // Umbral para iniciar captura.
+
+/**
+ * @brief Divisor de reloj para el ADC con el objetivo de lograr una frecuencia de muestreo de 8 kHz.
+ */
+#define ADC_CLKDIV 6000      // Divisor de reloj para lograr una FS de 8 kHz.
+
+/**
+ * @brief Número de muestras por cada captura de audio.
+ */
+#define SAMPLES 5120      // Numero de muestras por audio capturado
+
+/**
+ * @brief Tamaño de la ventana para realizar la Transformada de Fourier de Tiempo Corto (STFT).
+ */
+#define TAMANO_VENTANA 64 // Tamaño de la ventana para la STFT
+
+/**
+ * @brief Frecuencia de muestreo en Hz.
+ */
+#define FS 8000           // frecuencia de muestreo
+
+/**
+ * @brief Pin GPIO asociado al ADC.
+ */
+#define adc_GPIO 26
 
 struct Flags  /**< Estructura para almacenar banderas del sistema. */
 {
@@ -69,8 +95,6 @@ volatile int capture_start = 0; /**< Bandera para iniciar almacenamiento de mues
 volatile int capture_count = 0; /**< Contador de muestras capturadas tras cruzar el umbral. */
 volatile int servo_angle = 0; /**< Ángulo actual del servomotor. */
 
-volatile uint64_t last_interrupt_time = 0; /**< Marca de tiempo de la última interrupción. */
-
 // Demas banderas para procesamiento
 int IsProcess = 0; /**< Indica si el sistema está procesando. */
 int IsShow = 0;   /**< Indica si el sistema está mostrando resultados relacionado al cambio de clave. */
@@ -90,6 +114,12 @@ void adc_handler();
 void gpio_callback(uint gpio, uint32_t events);
 
 /**
+ * @brief Configura el ADC con los parámetros necesarios.
+ * @param ADC_GPIO Pin GPIO utilizado como entrada para el ADC.
+ */
+void ADC_initialize(uint ADC_GPIO);
+
+/**
  * @brief Función principal del programa que controla el flujo de ejecución.
  *
  * Inicializa los periféricos del sistema (LEDs, ADC, LDR, IR y PWM). 
@@ -101,12 +131,12 @@ void gpio_callback(uint gpio, uint32_t events);
  */
 int main()
 {
-    // Inicializa salida serial
+    // Inicializa  salida serial
     stdio_init_all();
     sleep_ms(10000); // Espera para inicializar la casa
 
     LandB_init();
-    ADC_init(adc_GPIO);
+    ADC_initialize(adc_GPIO);
     set_up_LDR();
     set_up_IR();
 
@@ -240,6 +270,33 @@ int main()
     }
 
     return 0;
+}
+
+void ADC_initialize(uint ADC_GPIO)
+{
+    // Configuración del ADC
+    adc_init();
+    adc_gpio_init(ADC_GPIO);   // GPIO 26 como entrada analógica
+    adc_select_input(0); // Selecciona el canal 0 del ADC
+    adc_fifo_setup(
+        true,  // Habilita FIFO
+        false, // No usa DMA
+        1,     // Umbral de FIFO en 1
+        false, // No incluir errores en FIFO
+        false  // No reduce resolución a 8 bits
+    );
+
+    // Configurar el divisor del reloj para una FS de 8 kHz (48 MHz / 6000 = 8 kHz)
+    adc_set_clkdiv((float)ADC_CLKDIV);
+
+    // Configura la interrupción
+    irq_set_exclusive_handler(ADC_IRQ_FIFO, adc_handler);
+    irq_set_priority(ADC_IRQ_FIFO, PICO_HIGHEST_IRQ_PRIORITY);
+    irq_set_enabled(ADC_IRQ_FIFO, true);
+    adc_irq_set_enabled(true);
+
+    // Iniciar el ADC
+    adc_run(true);
 }
 
 void adc_handler()

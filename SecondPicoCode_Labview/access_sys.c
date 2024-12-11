@@ -43,7 +43,7 @@
 #include "lcd_i2c.h"
 
 // Constantes para control de servomotor
-#define BUTTON 17
+#define BUTTON 17 
 #define Servo_PIN 16
 
 #define ROTATE_0 1000 // Rotate to 0° position
@@ -75,9 +75,9 @@ const uint32_t mask_flags = (1 << 18) | (1 << 19) | (1 << 20) | (1 << 21);
 
 // Constantes del controlador PID, sensor de temperatura
 #define KP 10         // Ganancia proporcional
-#define KI 0.5        // Ganancia integral
+#define KI 0.2        // Ganancia integral
 #define KD 0.1        // Ganancia derivativa
-#define SETPOINT 25.0 // Temperatura deseada en °C
+#define SETPOINT 26.0 // Temperatura deseada en °C
 #define PIN_PWM 10
 #define ADC_CLKDIV 47999
 #define AMP_GAIN 5
@@ -103,6 +103,8 @@ struct repeating_timer timer_servo;
     3 Clave ha sido cambiada
     4 Clave no ha sido cambiada*/  
 uint8_t accessState = 0; 
+float temperature = 0;
+float duty_cycle = 0;
 
 typedef union
 {
@@ -169,6 +171,7 @@ volatile uint8_t gKeyCnt = 0;
 volatile uint8_t gSeqCnt = 0;
 volatile bool gDZero = false;
 volatile uint32_t gKeyCap;
+uint8_t keyPressed = 255; 
 
 volatile bool timer_fired = false; // bandera indica si el usuario ingreso los 10 digitos antes de los 10 segundos
 // true= ya pasaron los 10 segundos
@@ -393,6 +396,9 @@ void ChangePSW(int8_t idxID, uint8_t *vecPSWD, uint8_t *PSWD)
         lcd_set_cursor(0, 0);
         lcd_string("Clave cambiada");
         accessState = 3;
+        printf("TMP:%.2f IR:%s LDR:%s Bulb:%s Lamp:%s Acc:%u Duty:%.2f Key:%X\n",temperature, gFlags.B.isIR ? "1" : "0", gFlags.B.isLDR ? "1" : "0",
+                gFlags.B.isRoom ? "1" : "0", gFlags.B.isLamp ? "1" : "0", accessState, duty_cycle, keyPressed);
+        keyPressed = 255;
     }
     else
     {
@@ -400,6 +406,9 @@ void ChangePSW(int8_t idxID, uint8_t *vecPSWD, uint8_t *PSWD)
         lcd_clear();
         lcd_set_cursor(0, 0);
         lcd_string("Clave no cambiada");
+        printf("TMP:%.2f IR:%s LDR:%s Bulb:%s Lamp:%s Acc:%u Duty:%.2f Key:%X\n",temperature, gFlags.B.isIR ? "1" : "0", gFlags.B.isLDR ? "1" : "0",
+                gFlags.B.isRoom ? "1" : "0", gFlags.B.isLamp ? "1" : "0", accessState, duty_cycle, keyPressed);
+        keyPressed = 255;
         accessState = 4;
     }
 
@@ -611,8 +620,8 @@ void initMatrixKeyboard4x4(void)
 float PID_controller(float error)
 {
     integral += error; // Calcular término integral
-    if (integral > 200)
-        integral = 200;
+    if (integral > 100)
+        integral = 100;
     float derivative = error - last_error; // Calcular término derivativo
     float output = KP * error + KI * integral + KD * derivative;
 
@@ -810,6 +819,7 @@ int main()
                 if (keyd != 0xFF)
                 {
                     //printf("capturo tecla: %X \n", keyd);
+                    keyPressed = keyd;
                     insertKey(keyd);
                     if (!IsShow && changePas)
                     { // si ya se capturaron 4 digitos y se queria cambiar contrasena se llama la funcion para cambiar la contrasena asociada al ultimo usuario ingresago
@@ -916,6 +926,9 @@ int main()
                         //printf("Acceso denegado\n");
                         accessState = 1;
                         gFlags.B.timeOut = true;
+                        printf("TMP:%.2f IR:%s LDR:%s Bulb:%s Lamp:%s Acc:%u Duty:%.2f Key:%X\n",temperature, gFlags.B.isIR ? "1" : "0", gFlags.B.isLDR ? "1" : "0",
+                        gFlags.B.isRoom ? "1" : "0", gFlags.B.isLamp ? "1" : "0", accessState, duty_cycle, keyPressed);
+                keyPressed = 255;
                     }
                     gKeyCnt = 0;                                                              // reinicia conteo
                     hKeys[10] = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF); // reinciar vector que almacena 10 digitos del usuario
@@ -957,6 +970,9 @@ int main()
                 lcd_clear();
                 lcd_set_cursor(0, 0);
                 lcd_string("Acceso concedido");
+                printf("TMP:%.2f IR:%s LDR:%s Bulb:%s Lamp:%s Acc:%u Duty:%.2f Key:%X\n",temperature, gFlags.B.isIR ? "1" : "0", gFlags.B.isLDR ? "1" : "0",
+                        gFlags.B.isRoom ? "1" : "0", gFlags.B.isLamp ? "1" : "0", accessState, duty_cycle, keyPressed);
+                keyPressed = 255;
 
                 // set_servo_angle(Servo_PIN, 90);
                 // sleep_ms(2000);
@@ -979,6 +995,9 @@ int main()
                 lcd_clear();
                 lcd_set_cursor(0, 0);
                 lcd_string("Acceso denegado");
+                printf("TMP:%.2f IR:%s LDR:%s Bulb:%s Lamp:%s Acc:%u Duty:%.2f Key:%X\n",temperature, gFlags.B.isIR ? "1" : "0", gFlags.B.isLDR ? "1" : "0",
+                        gFlags.B.isRoom ? "1" : "0", gFlags.B.isLamp ? "1" : "0", accessState, duty_cycle, keyPressed);
+                keyPressed = 255;
                 if (timer_fired)
                 {
                     lcd_set_cursor(1, 0);
@@ -996,14 +1015,15 @@ int main()
             if (gFlags.B.adcHandler)
             {
                 //printf("ADC: %u\n", adc_raw);
-                float temperature = (((float)adc_raw) * ADC_VREF / (ADC_RESOL * AMP_GAIN)) * 100;
+                temperature = (((float)adc_raw) * ADC_VREF / (ADC_RESOL * AMP_GAIN)) * 100;
                 float error = temperature - SETPOINT;
-                float duty_cycle = PID_controller(error);
+                duty_cycle = PID_controller(error);
 
                 // Imprimir temperatura y duty cycle al monitor serial
                 //printf("Temperatura: %.2f °C. Ciclo de dureza: %.5f. Error: %.5f\n", temperature, duty_cycle, error);
-                printf("TMP:%.2f IR:%s LDR:%s Bulb:%s Lamp:%s Acc:%u Duty:%.2f\n",temperature, gFlags.B.isIR ? "1" : "0", gFlags.B.isLDR ? "1" : "0",
-                        gFlags.B.isRoom ? "1" : "0", gFlags.B.isLamp ? "1" : "0", accessState, duty_cycle);
+                printf("TMP:%.2f IR:%s LDR:%s Bulb:%s Lamp:%s Acc:%u Duty:%.2f Key:%X\n",temperature, gFlags.B.isIR ? "1" : "0", gFlags.B.isLDR ? "1" : "0",
+                        gFlags.B.isRoom ? "1" : "0", gFlags.B.isLamp ? "1" : "0", accessState, duty_cycle, keyPressed);
+                keyPressed = 255;
 
                 // Ajustar PWM aquí usando duty_cycle
                 pwm_set_gpio_level(PIN_PWM, duty_cycle * 65535 / 100); // 100% = 65535

@@ -1,5 +1,5 @@
-#ifndef SENS_H
-#define SENS_H
+#ifndef DIGIELEMENTS_H
+#define DIGIELEMENTS_H
 
 #include "hardware/gpio.h"  /**< Configuración y control de pines GPIO. */
 #include "hardware/adc.h"   /**< Control del módulo ADC en la Raspberry Pi Pico. */
@@ -12,14 +12,14 @@
 // Macros de inicialización de sensores digitales
 
 /**
- * @brief Divisor de reloj para el ADC con el objetivo de lograr una frecuencia de muestreo de 8 kHz.
- */
-#define ADC_CLKDIV 6000      // Divisor de reloj para lograr una FS de 8 kHz.
-
-/**
  * @brief Pin del botón de entrada.
  */
 #define BUTTON 18
+
+/**
+ * @brief Divisor de reloj para el ADC con el objetivo de lograr una frecuencia de muestreo de 8 kHz.
+ */
+#define ADC_CLKDIV 6000      // Divisor de reloj para lograr una FS de 8 kHz.
 
 /**
  * @brief Pin del LED de mesa de noche para encender y apagar.
@@ -51,14 +51,12 @@
  */
 #define IR_PIN 17
 
-/**
- * @brief Pin GPIO asociado al ADC.
- */
-#define adc_GPIO 26
-
-// Macros de inicialización de bot
-
 // Funciones de Inicialización de sensores
+
+/**
+ * @brief Inicializa los GPIOs del LED y el botón.
+ */
+void LandB_init();
 
 /**
  * @brief Configura el GPIO para el sensor LDR y su LED asociado.
@@ -69,16 +67,5 @@ void set_up_LDR();
  * @brief Configura el GPIO para el sensor IR y su LED asociado.
  */
 void set_up_IR();
-
-/**
- * @brief Configura el ADC con los parámetros necesarios.
- * @param ADC_GPIO Pin GPIO utilizado como entrada para el ADC.
- */
-void ADC_init(uint ADC_GPIO);
-
-/**
- * @brief Inicializa los GPIOs del LED y el botón.
- */
-void LandB_init();
 
 #endif

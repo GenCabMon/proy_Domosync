@@ -16,11 +16,6 @@
 #include <math.h> /**< Funciones matemáticas estándar como cos, sin, sqrt, etc. */
 
 /**
- * @brief Frecuencia de muestreo en Hz.
- */
-#define FS 8000           // frecuencia de muestreo
-
-/**
  * @def SAMPLES
  * @brief Número total de muestras de la señal.
  */

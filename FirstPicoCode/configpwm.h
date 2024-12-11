@@ -12,6 +12,7 @@
 #include "hardware/sync.h"  /**< Funciones de sincronización del hardware. */
 
 // Macros
+
 /**
  * @brief Valor para rotar el servomotor a la posición de 0°.
  */
@@ -58,6 +59,8 @@
  */
 #define Servo_PIN 19
 
+
+extern volatile uint64_t last_interrupt_time; /**< Marca de tiempo de la última interrupción. */
 // Funciones
 
 /**

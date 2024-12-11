@@ -1,5 +1,7 @@
 #include "configpwm.h"
 
+volatile uint64_t last_interrupt_time = 0; /**< Marca de tiempo de la última interrupción. */
+
 void project_pwm_init(uint PWM_GPIO)
 {
     gpio_init(PWM_GPIO);
