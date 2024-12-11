@@ -2,7 +2,7 @@
  * @file access_sys.c
  * @version 1.0
  * @date 2024-10-07
- * @author Leyder Homero Marcillo Mera, Santiago José Vargas Higuera, Santiago Pereira Ramírez y Juan Diego Cabrera Moncada
+ * @author Leyder Homero Marcillo Mera y Nelson Mauricio García López
  * @title Sistema de acceso
  * @brief El sistema de control de acceso cuenta con una base de datos de usuarios, donde cada usuario tiene un
  * identificador de ID y una contraseña asociada de 4 dígitos. Para otorgar acceso al usuario,
@@ -43,7 +43,7 @@
 #include "lcd_i2c.h"
 
 // Constantes para control de servomotor
-#define BUTTON 17 
+#define BUTTON 17
 #define Servo_PIN 16
 
 #define ROTATE_0 1000 // Rotate to 0° position
@@ -55,13 +55,23 @@
 
 #define MAX_DUTY_CYCLE 0.1
 #define MIN_DUTY_CYCLE 0.05
-#define DEBOUNCE_TIME_US 2000000 // Tiempo de anti-rebote en microsegundos (500 ms)
+#define DEBOUNCE_TIME_US 5000000 // Tiempo de anti-rebote en microsegundos (500 ms)
 
 volatile int servo_angle = 0;
 volatile uint64_t last_interrupt_time_LDR = 0; // Marca de tiempo de la última interrupción
 volatile uint64_t last_interrupt_time_MD = 0;  // Marca de tiempo de la última interrupción
 volatile bool enable_timer_servo = false;
 volatile uint64_t last_interrupt_time = 0;
+
+/*  0 Default (No ha hecho intentos de acceso aún)
+    1 Acceso denegado
+    2 Acceso concedido
+    3 Clave ha sido cambiada
+    4 Clave no ha sido cambiada*/  
+uint8_t accessState = 0; 
+float temperature = 0;
+float duty_cycle = 0;
+uint8_t keyPressed = 255; // 0x0 a 0xF son teclas, 255 es Ninguna tecla
 
 // Constantes para sistema de acceso matriz
 #define YELLOW_LED 11
@@ -74,8 +84,8 @@ volatile uint64_t last_interrupt_time = 0;
 const uint32_t mask_flags = (1 << 18) | (1 << 19) | (1 << 20) | (1 << 21);
 
 // Constantes del controlador PID, sensor de temperatura
-#define KP 10         // Ganancia proporcional
-#define KI 0.2        // Ganancia integral
+#define KP 8         // Ganancia proporcional
+#define KI 0.3        // Ganancia integral
 #define KD 0.1        // Ganancia derivativa
 #define SETPOINT 26.0 // Temperatura deseada en °C
 #define PIN_PWM 10
@@ -96,15 +106,6 @@ volatile uint16_t adc_raw;
 
 struct repeating_timer timer; // timer para alarma de toggle led amarillo
 struct repeating_timer timer_servo;
-
-/*  0 Default (No ha hecho intentos de acceso aún)
-    1 Acceso denegado
-    2 Acceso concedido
-    3 Clave ha sido cambiada
-    4 Clave no ha sido cambiada*/  
-uint8_t accessState = 0; 
-float temperature = 0;
-float duty_cycle = 0;
 
 typedef union
 {
@@ -171,7 +172,6 @@ volatile uint8_t gKeyCnt = 0;
 volatile uint8_t gSeqCnt = 0;
 volatile bool gDZero = false;
 volatile uint32_t gKeyCap;
-uint8_t keyPressed = 255; 
 
 volatile bool timer_fired = false; // bandera indica si el usuario ingreso los 10 digitos antes de los 10 segundos
 // true= ya pasaron los 10 segundos
@@ -338,9 +338,11 @@ bool checkPSWD(int8_t idxID, uint8_t *vecPSWD, uint8_t *PSWD, uint8_t IschangeP)
         lcd_set_cursor(0, 0);
         lcd_string("Ingrese su ID");
         lcd_set_cursor(1, 0);
-        lcd_string(" y su clave actual");
+        lcd_string("y su clave actual");
         gKeyCnt = 0;
         hKeys[10] = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
+        gFlags.B.greenLed = false;
+        
     }
     else if (!IsnowP)
     {
@@ -382,9 +384,11 @@ void ChangePSW(int8_t idxID, uint8_t *vecPSWD, uint8_t *PSWD)
     {
         if (PSWD[j] == 0xF)
         {
+            //printf("entro");
             cont_F++;
         }
     }
+    //printf("CONTF ES: %d\n", cont_F);
     if (cont_F < 4)
     {
         for (int j = 0; j < 4; j++)
@@ -406,10 +410,10 @@ void ChangePSW(int8_t idxID, uint8_t *vecPSWD, uint8_t *PSWD)
         lcd_clear();
         lcd_set_cursor(0, 0);
         lcd_string("Clave no cambiada");
+        accessState = 4;
         printf("TMP:%.2f IR:%s LDR:%s Bulb:%s Lamp:%s Acc:%u Duty:%.2f Key:%X\n",temperature, gFlags.B.isIR ? "1" : "0", gFlags.B.isLDR ? "1" : "0",
                 gFlags.B.isRoom ? "1" : "0", gFlags.B.isLamp ? "1" : "0", accessState, duty_cycle, keyPressed);
         keyPressed = 255;
-        accessState = 4;
     }
 
     gKeyCnt = 0;
@@ -432,9 +436,11 @@ int64_t alarm_callback_teclado(alarm_id_t id, __unused void *user_data)
 {
     if (timer_fired)
     {
+        //printf("time out alarm 422\n");
         // led_on(RED_LED);
         gFlags.B.timeOut = true;
         timer_fired = false;
+        
     }
     // Can return a value here in us to fire in the future
     return 0;
@@ -620,8 +626,8 @@ void initMatrixKeyboard4x4(void)
 float PID_controller(float error)
 {
     integral += error; // Calcular término integral
-    if (integral > 100)
-        integral = 100;
+    if (integral > 200)
+        integral = 200;
     float derivative = error - last_error; // Calcular término derivativo
     float output = KP * error + KI * integral + KD * derivative;
 
@@ -647,57 +653,17 @@ void adc_handler()
     }
 }
 
-// ISR para manejar flancos de subida y bajada
-void gpio_callback_LDR(uint gpio, uint32_t events)
-{
-
-    uint64_t current_time = time_us_64(); // Tiempo actual en microsegundos
-
-    // Ignorar interrupciones si están dentro del tiempo de anti-rebote
-    if (current_time - last_interrupt_time_LDR < DEBOUNCE_TIME_US)
-    {
-        return;
-    }
-
-    last_interrupt_time_LDR = current_time; // Actualizar el tiempo de la última interrupción
-
-    //printf("GPIO %d, event %d\n", gpio, events);
-    if (gpio == BUTTON)
-    {
-        if (events & GPIO_IRQ_EDGE_FALL)
-        { // Flanco de subida (LOW -> HIGH)
-            // Mover 90 grados el servo con PWM
-            //printf("Rise\n");
-
-            // Alternar entre 0° y 90°
-            if (servo_angle == 0)
-            {
-                servo_angle = 90;
-            }
-            else
-            {
-                servo_angle = 0;
-            }
-
-            // Establecer el nuevo ángulo del servo
-            set_servo_angle(Servo_PIN, servo_angle);
-        }
-    }
-    gpio_acknowledge_irq(gpio, events);
-}
-
-bool cerraome = false;
-void cerrar()
+bool open = false;
+void close()
 {
     uint64_t current_time = time_us_64(); // Tiempo actual en microsegundos
 
-    // Ignorar interrupciones si están dentro del tiempo de anti-rebote
-    if ((current_time - last_interrupt_time > DEBOUNCE_TIME_US) && cerraome)
+    // Se cierra la puerta principal pasado el tiempo si esta esta abierta
+    if ((current_time - last_interrupt_time > DEBOUNCE_TIME_US) && open)
     {
-        //printf("HOOOOOOOOOOOOOOOOOOOOO \n "); // Si todo marchaba bien pero el usuario ya esta bloqueado
-
+        //printf("Se cierra la puerta \n "); 
         set_servo_angle(Servo_PIN, 0);
-        cerraome = false;
+        open = false;
     }
     
 }
@@ -773,7 +739,6 @@ int main()
     project_pwm_init(Servo_PIN);
     set_servo_angle(Servo_PIN, servo_angle); // Set the initial angle to 0°
 
-    // gpio_set_irq_enabled_with_callback(BUTTON, GPIO_IRQ_EDGE_FALL, true, &gpio_callback_LDR);
     gpio_set_irq_enabled_with_callback(BUTTON, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, gpio_callback);
 
     sleep_ms(2000);
@@ -805,7 +770,9 @@ int main()
 
     while (1)
     {
-        cerrar();
+        if(open){
+            close();
+        }
         while (gFlags.W)
         {
             uint64_t current_time = time_us_64();
@@ -818,8 +785,12 @@ int main()
                 //printf("%X,%X\n", KeyData, keyd);
                 if (keyd != 0xFF)
                 {
-                    //printf("capturo tecla: %X \n", keyd);
                     keyPressed = keyd;
+                    char keyd_str[3]; // Buffer para almacenar la cadena
+                    sprintf(keyd_str, "%02X", keyd); // Convertir a cadena en formato hexadecimal
+                    lcd_set_cursor(3, 18);
+                    lcd_string(keyd_str);
+                    //printf("capturo tecla: %X \n", keyd);
                     insertKey(keyd);
                     if (!IsShow && changePas)
                     { // si ya se capturaron 4 digitos y se queria cambiar contrasena se llama la funcion para cambiar la contrasena asociada al ultimo usuario ingresago
@@ -832,6 +803,7 @@ int main()
                 if (gKeyCnt == 1 && !changePas)
                 {
                     // led_off(YELLOW_LED);
+                    //printf("inicio conteo\n");
                     timer_fired = true;
                     add_alarm_in_ms(50000, alarm_callback_teclado, NULL, true);
                 }
@@ -842,11 +814,11 @@ int main()
                 }
                 else if (gKeyCnt == 10)
                 {
+                    timer_fired = false;
                     if (timer_toggle)
                     {
                         bool cancelled = cancel_repeating_timer(&timer); // Se cancela la alarma de titilar led amarillo
                     }
-                    timer_fired = false;
                     //printf("conteo llego a 10\n");
                     // led_off(YELLOW_LED);
                     //printf("hKeys: ");
@@ -861,11 +833,13 @@ int main()
                         bool OK = checkPSWD(idxID, vecPSWD, hKeys, IschangeP); // si el ID existe entoncese se chequea la contrasena
                         if (OK && !IschangeP)
                         {
-
+                            if (!changePas)
+                            { 
+                            //if ((!(blockIDs & (0x0001 << idxID))) && !changePas)
                             if (!(blockIDs & (0x0001 << idxID)))
                             { // si la contrasena esta correcta y el ususario no esta bloqueado entonces GREEN
                                 // led_on(GREEN_LED);
-                                cerraome = true;
+                                open = true;  // la puerta esta abierta
                                 last_interrupt_time = time_us_64();
 
                                 // sleep_ms(1000);
@@ -880,12 +854,19 @@ int main()
                                 // led_on(RED_LED);
                                 gFlags.B.timeOut = true;
                             }
+                            }
+                            
                         }
                         else if (IschangeP && OK)
                         {
                             if (IsnowP && !IsnowP_2)
                             {
-                                //printf("Ingrese ahora el usuario y la nueva contraseña");
+                                //printf("Ingrese ahora el usuario y la nueva contraseña \n");
+                                lcd_clear();
+                                lcd_set_cursor(0, 0);
+                                lcd_string("Ingrese su ID");
+                                lcd_set_cursor(1, 0);
+                                lcd_string("y su clave nueva");
                             }
                             if (IsnowP && IsnowP_2)
                             {
@@ -908,9 +889,13 @@ int main()
                                 //printf("usuario bloqueado %02X  \n", idxID); // usuario baneado del sistema
                                 lcd_set_cursor(0, 0);
                                 lcd_string("Usuario bloqueado");
+                                accessState = 1;
+                                printf("TMP:%.2f IR:%s LDR:%s Bulb:%s Lamp:%s Acc:%u Duty:%.2f Key:%X\n",temperature, gFlags.B.isIR ? "1" : "0", gFlags.B.isLDR ? "1" : "0",
+                                        gFlags.B.isRoom ? "1" : "0", gFlags.B.isLamp ? "1" : "0", accessState, duty_cycle, keyPressed);
+                                keyPressed = 255;
                             }
+                            timer_fired = true;
                             //printf("Acceso denegado\n");
-                            accessState = 1;  
                             // led_on(RED_LED);
                             gFlags.B.timeOut = true;
                             IschangeP = 0;
@@ -923,15 +908,13 @@ int main()
                     else
                     {
                         // led_on(RED_LED);
+                        timer_fired = true;
                         //printf("Acceso denegado\n");
-                        accessState = 1;
                         gFlags.B.timeOut = true;
-                        printf("TMP:%.2f IR:%s LDR:%s Bulb:%s Lamp:%s Acc:%u Duty:%.2f Key:%X\n",temperature, gFlags.B.isIR ? "1" : "0", gFlags.B.isLDR ? "1" : "0",
-                        gFlags.B.isRoom ? "1" : "0", gFlags.B.isLamp ? "1" : "0", accessState, duty_cycle, keyPressed);
-                keyPressed = 255;
                     }
                     gKeyCnt = 0;                                                              // reinicia conteo
                     hKeys[10] = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF); // reinciar vector que almacena 10 digitos del usuario
+                    gFlags.B.timeOut = true;    
                 }
                 gFlags.B.keyFlag = false;
             }
@@ -959,27 +942,16 @@ int main()
             }
             if (gFlags.B.greenLed)
             {
-                // sleep_ms(1000);
-                // set_servo_angle(Servo_PIN, 0);
-
                 sleep_ms(100);
                 set_servo_angle(Servo_PIN, 90);
-
                 //printf("Acceso concedido\n");
-                accessState = 2;
                 lcd_clear();
                 lcd_set_cursor(0, 0);
                 lcd_string("Acceso concedido");
+                accessState = 2;
                 printf("TMP:%.2f IR:%s LDR:%s Bulb:%s Lamp:%s Acc:%u Duty:%.2f Key:%X\n",temperature, gFlags.B.isIR ? "1" : "0", gFlags.B.isLDR ? "1" : "0",
                         gFlags.B.isRoom ? "1" : "0", gFlags.B.isLamp ? "1" : "0", accessState, duty_cycle, keyPressed);
                 keyPressed = 255;
-
-                // set_servo_angle(Servo_PIN, 90);
-                // sleep_ms(2000);
-                // set_servo_angle(Servo_PIN, 0);
-                // sleep_ms(2000);
-                // led_off(GREEN_LED);
-                // led_on(YELLOW_LED);
                 gKeyCnt = 0;
                 hKeys[10] = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
                 gFlags.B.greenLed = false;
@@ -991,30 +963,31 @@ int main()
                     bool cancelled = cancel_repeating_timer(&timer);
                 }
                 //printf("Time out \n");
-                accessState = 1;
-                lcd_clear();
-                lcd_set_cursor(0, 0);
-                lcd_string("Acceso denegado");
-                printf("TMP:%.2f IR:%s LDR:%s Bulb:%s Lamp:%s Acc:%u Duty:%.2f Key:%X\n",temperature, gFlags.B.isIR ? "1" : "0", gFlags.B.isLDR ? "1" : "0",
-                        gFlags.B.isRoom ? "1" : "0", gFlags.B.isLamp ? "1" : "0", accessState, duty_cycle, keyPressed);
-                keyPressed = 255;
                 if (timer_fired)
                 {
+                    lcd_clear();
+                    lcd_set_cursor(0, 0);
+                    lcd_string("Acceso denegado");
+                    accessState = 1;
+                    printf("TMP:%.2f IR:%s LDR:%s Bulb:%s Lamp:%s Acc:%u Duty:%.2f Key:%X\n",temperature, gFlags.B.isIR ? "1" : "0", gFlags.B.isLDR ? "1" : "0",
+                            gFlags.B.isRoom ? "1" : "0", gFlags.B.isLamp ? "1" : "0", accessState, duty_cycle, keyPressed);
+                    keyPressed = 255;
+                    //lcd_set_cursor(1, 0);
+                    //lcd_string("Tiempo agotado");
                     lcd_set_cursor(1, 0);
-                    lcd_string("Tiempo agotado");
+                    lcd_string("Intente nuevamente");
+                    
                 }
-                lcd_set_cursor(2, 0);
-                lcd_string("Intente nuevamente");
-                // led_off(RED_LED);
-                // led_off(GREEN_LED);
-                // led_on(YELLOW_LED);
+                //lcd_set_cursor(2, 0);
+                //lcd_string("Intente nuevamente");;
                 gKeyCnt = 0;
                 hKeys[10] = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
                 gFlags.B.timeOut = false;
+                timer_fired = false;
             }
             if (gFlags.B.adcHandler)
             {
-                //printf("ADC: %u\n", adc_raw);
+               // printf("ADC: %u\n", adc_raw);
                 temperature = (((float)adc_raw) * ADC_VREF / (ADC_RESOL * AMP_GAIN)) * 100;
                 float error = temperature - SETPOINT;
                 duty_cycle = PID_controller(error);
@@ -1022,8 +995,7 @@ int main()
                 // Imprimir temperatura y duty cycle al monitor serial
                 //printf("Temperatura: %.2f °C. Ciclo de dureza: %.5f. Error: %.5f\n", temperature, duty_cycle, error);
                 printf("TMP:%.2f IR:%s LDR:%s Bulb:%s Lamp:%s Acc:%u Duty:%.2f Key:%X\n",temperature, gFlags.B.isIR ? "1" : "0", gFlags.B.isLDR ? "1" : "0",
-                        gFlags.B.isRoom ? "1" : "0", gFlags.B.isLamp ? "1" : "0", accessState, duty_cycle, keyPressed);
-                keyPressed = 255;
+                gFlags.B.isRoom ? "1" : "0", gFlags.B.isLamp ? "1" : "0", accessState, duty_cycle, keyPressed);
 
                 // Ajustar PWM aquí usando duty_cycle
                 pwm_set_gpio_level(PIN_PWM, duty_cycle * 65535 / 100); // 100% = 65535
