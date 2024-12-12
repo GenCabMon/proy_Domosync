@@ -1,5 +1,5 @@
 /**
- * @file access_sys.c
+ * @file main_pico.c
  * @version 1.0
  * @date 2024-10-07
  * @author Leyder Homero Marcillo Mera y Nelson Mauricio García López
@@ -54,7 +54,7 @@
 
 #define MAX_DUTY_CYCLE 0.1
 #define MIN_DUTY_CYCLE 0.05
-#define DEBOUNCE_TIME_US 5000000 // Tiempo de anti-rebote en microsegundos (500 ms)
+#define DEBOUNCE_TIME_US 3000000 // Tiempo de anti-rebote en microsegundos (500 ms)
 
 volatile int servo_angle = 0;
 volatile uint64_t last_interrupt_time_LDR = 0; // Marca de tiempo de la última interrupción
