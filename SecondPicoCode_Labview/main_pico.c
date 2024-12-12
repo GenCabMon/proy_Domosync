@@ -36,13 +36,6 @@
 #include "hardware/adc.h"  /**< Control de conversión ADC en hardware. */
 #include "lcd_i2c.h"       /**< Biblioteca para control de LCD mediante comunicación I2C. */
 #include "base_de_datos.h" /**< Arrays de datos para análisis de ingreso de personas a la casa. */
-
-
-/** @def BUTTON
- *  @brief Pin GPIO para el botón de control del servomotor.
- */
-#define BUTTON 17
-
 /** @def Servo_PIN
  *  @brief Pin GPIO para el control del servomotor.
  */
@@ -126,7 +119,7 @@
 /** @def KP
  *  @brief Constante proporcional del controlador PID.
  */
-#define KP 8         // Ganancia proporcional
+#define KP 10         // Ganancia proporcional
 
 /** @def KI
  *  @brief Constante integral del controlador PID.
@@ -204,7 +197,6 @@ typedef union
 volatile int servo_angle = 0; /**< Ángulo actual del servomotor. */
 volatile uint64_t last_interrupt_time_LDR = 0; /**< Marca de tiempo de la última interrupción del sensor LDR. */
 volatile uint64_t last_interrupt_time_MD = 0;  /**< Marca de tiempo de la última interrupción de la puerta principal. */
-volatile bool enable_timer_servo = false; /**< Bandera para habilitar el temporizador del servomotor. */
 volatile uint64_t last_interrupt_time = 0; /**< Marca de tiempo de la última interrupción general. */
 
 uint8_t accessState = 0; /**< Estado actual del sistema de acceso. */
@@ -222,7 +214,6 @@ volatile uint16_t adc_raw; /**< Valor bruto del ADC leído. */
 
 
 struct repeating_timer timer; /**< Temporizador utilizado para la alarma. */
-struct repeating_timer timer_servo; /**< Temporizador utilizado para el servomotor. */
 
 volatile myFlags_t gFlags; /**< Estructura de banderas globales. */
 
@@ -534,10 +525,6 @@ bool repeating_timer_callback(struct repeating_timer *t)
     {
         // led_toggle(YELLOW_LED);
     }
-    else if (t == &timer_servo)
-    {
-        enable_timer_servo = !enable_timer_servo;
-    }
     return true;
 }
 
@@ -843,16 +830,10 @@ int main()
     // gpio_put(YELLOW_LED, 1);
 
     //=========================Inicializacion control de servo ===========================
-    // Initialize the GPIO input pin
-    gpio_init(BUTTON);
-    gpio_set_dir(BUTTON, GPIO_IN); // Set the direction as input
-    gpio_pull_up(BUTTON);          // Enable pull-up
 
     // Initialize the PWM pin
     project_pwm_init(Servo_PIN);
     set_servo_angle(Servo_PIN, servo_angle); // Set the initial angle to 0°
-
-    gpio_set_irq_enabled_with_callback(BUTTON, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, gpio_callback);
 
     sleep_ms(2000);
     lcd_set_cursor(0, 0);
@@ -952,7 +933,6 @@ int main()
                             if (!(blockIDs & (0x0001 << idxID)))
                             { // si la contrasena esta correcta y el ususario no esta bloqueado entonces GREEN
                                 // led_on(GREEN_LED);
-                                open = true;  // la puerta esta abierta
                                 last_interrupt_time = time_us_64();
 
                                 // sleep_ms(1000);
@@ -1056,6 +1036,7 @@ int main()
             if (gFlags.B.greenLed)
             {
                 sleep_ms(100);
+                open = true;  // la puerta esta abierta
                 set_servo_angle(Servo_PIN, 90);
                 //printf("Acceso concedido\n");
                 lcd_clear();
@@ -1120,11 +1101,6 @@ int main()
                 lcd_set_cursor(3, 0);
                 lcd_string(buffer_temp);
                 gFlags.B.adcHandler = 0;
-            }
-            if (!enable_timer_servo)
-            {
-                cancel_repeating_timer(&timer_servo);
-                gpio_put(BUTTON, false);
             }
             if (gFlags.B.isLights)
             {
