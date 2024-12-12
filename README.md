@@ -16,19 +16,19 @@ El diagrama de bloques mostrado a continuación ilustra la interacción entre lo
 
 ## Requisitos funcionales
 
-### Sensor de reconocimiento por aplauso - Lámpara de noche
-El sistema activará o desactivará la lámpara de noche mediante el reconocimiento de un aplauso. 
-El sensor de sonido se comunica con la Raspberry Pi Pico a través de comunicación digital directa (GPIO) o analógica. 
-En el caso de la comunicación digital, el sensor envía una señal binaria cuando detecta un aplauso. 
-Si se emplea un sensor analógico, este enviará una señal proporcional a la intensidad del sonido, la cual se conecta a un pin ADC para procesar los datos con mayor precisión, permitiendo ajustar la sensibilidad del sistema. 
-Cuando la lámpara esté apagada y se detecte un aplauso, esta se encenderá; si ya está encendida, un aplauso la apagará. 
+### Sensor de reconocimiento por aplausos
+El sistema activará o desactivará la lámpara de noche mediante el reconocimiento de tres aplausos. 
+El sensor de audio se comunica con la Raspberry Pi Pico a través de comunicación digital directa (GPIO) o analógica.
+Al emplear un sensor analógico, este enviará una señal proporcional a la intensidad del sonido, la cual se conecta a un pin ADC para procesar los datos con mayor precisión, permitiendo ajustar la sensibilidad del sistema. 
+Cuando la lámpara esté apagada y se detecte tres aplausos, esta se encenderá; si ya está encendida, tres aplausos la apagará. 
 El sistema debe procesar la entrada de sonido en un tiempo máximo de 1 segundo para asegurar una respuesta rápida y evitar retrasos. 
-Si se detectan múltiples aplausos en menos de 3 segundos, estos serán ignorados para prevenir el parpadeo indeseado de la lámpara.
+Este sistema se usa también para el control con 2 aplausos de la luz de la habitación.
 
 ### Sistema de acceso mediante teclado - Puerta principal
 La puerta principal se desbloqueará mediante la introducción de un código de 4 dígitos en el teclado. 
 Si el usuario no ingresa el código completo en un plazo máximo de 10 segundos, el sistema reiniciará el proceso, obligando a introducir nuevamente la clave. 
-Al ingresar un código incorrecto, se activará una alarma visual y se mostrará "Acceso denegado" en el LCD. 
+Al ingresar un código incorrecto, se activará una alarma visual y se mostrará "Acceso denegado" en el LCD.
+También se ha habilitado la opción de cambio de contraseña del usuario a través de la digitación de 4 'F's como clave de acceso, posterior ingreso del ID y clave actual y finalmente ID y clave nueva, la cual no puede ser 'FFFF'.
 La comunicación entre el teclado y la Raspberry Pi Pico se realizará a través de pines GPIO, garantizando una respuesta rápida y precisa. 
 Adicionalmente, el sistema asegurará que los datos introducidos sean procesados de manera eficiente, minimizando errores de lectura.
 
@@ -46,14 +46,12 @@ Para evitar solapamientos, se implementará una separación clara en los tiempos
 Además, se priorizarán las tareas; si se recibe una entrada del teclado, se dará prioridad a su procesamiento, permitiendo que la lectura del sensor de temperatura se posponga brevemente si es necesario, sin comprometer la frecuencia de actualización del sensor. 
 En términos de seguridad, se implementará un control de errores básico para evitar lecturas erróneas o datos incompletos durante la comunicación.
 
-### Sensor PIR - Movimiento para detección de presencia en la luz del cuarto
-El sensor PIR se utilizará para detectar movimiento y encender la luz del cuarto al reconocer la presencia de una persona. 
-El sistema garantizará un procesamiento eficiente, con un tiempo de respuesta máximo de 6 segundos, asegurando que la luz se encienda rápidamente al detectar movimiento. 
-El sensor PIR proporciona una salida digital, generando un pulso alto al detectar movimiento y volviendo a bajo cuando no se detecta presencia. 
+### Sensor IR - Movimiento para detección de presencia en la luz de la cocina
+El sensor IR se utilizará para detectar movimiento y encender la luz del cuarto al reconocer la presencia de una persona. 
+El sistema garantizará un procesamiento eficiente, con un tiempo de respuesta máximo de 3 segundos, asegurando que la luz se encienda rápidamente al detectar movimiento. 
+El sensor IR proporciona una salida digital, generando un pulso alto al detectar movimiento y volviendo a bajo cuando no se detecta presencia. 
 Este pulso se conectará directamente a un pin GPIO de la Raspberry Pi Pico, lo que facilita una respuesta rápida. 
-El sistema usará un relé para proporcionar aislamiento eléctrico entre la Raspberry Pi Pico y el circuito de la luz, protegiendo el microcontrolador de picos de voltaje o corrientes que podrían dañarlo. 
-Se implementarán controles para ajustar la sensibilidad del sensor PIR, evitando falsas alarmas causadas por objetos pequeños o mascotas. 
-Si no se detecta movimiento en un lapso de 1 minuto, la luz del cuarto se apagará automáticamente.
+Al dejar de detectar personas en la cocina, se apaga inmediatamente la luz de la cocina.
 
 ### Sensor de luz - Control de iluminación para la puerta de la calle
 El sistema utilizará un sensor de luz digital para detectar la intensidad lumínica exterior y encender automáticamente la luz de la calle (puerta principal) al anochecer. 
@@ -76,9 +74,9 @@ El sistema de acceso debe ser capaz de notificar al usuario si el acceso ha sido
 
 Condición inicial: La luz del cuarto está apagada.
 
-Acción: Aplaudir cerca del sensor.
+Acción: Aplaudir 2 veces cerca del sensor.
 
-Resultado esperado: La luz del cuarto debe encenderse en respuesta al aplauso.
+Resultado esperado: La luz del cuarto debe encenderse en respuesta a los 2 aplausos.
 
 Prueba adicional: Aplaudir nuevamente debe apagar la luz.
 
@@ -103,15 +101,13 @@ Resultado esperado: A medida que la temperatura aumenta, el control PI debe ajus
 
 Prueba adicional: Al retirar la fuente de calor, la velocidad del ventilador debe disminuir o apagarse conforme la temperatura vuelva a su nivel normal.
 
-4. Escenario 4: Prueba del Sensor PIR (Movimiento)
+4. Escenario 4: Prueba del Sensor IR (Movimiento)
 
-Condición inicial: No hay movimiento en la habitación o área cubierta por el sensor PIR, y la luz de la puerta principal está apagada.
+Condición inicial: No hay movimiento en la habitación o área cubierta por el sensor IR, y la luz de la puerta principal está apagada.
 
 Acción: Caminar dentro del área de detección del sensor PIR.
 
 Resultado esperado: La luz de la puerta principal debe activarse un lapso de tiempo breve tras la detección de movimiento.
-
-Prueba adicional: Permanecer quieto o salir del área de detección debe apagar dicha luz después de un minuto de no detectar movimiento.
 
 5. Escenario 5: Prueba de Monitoreo en LCD
 
@@ -192,15 +188,9 @@ o	Bigtrónica: Módulo Sensor de Temperatura Analógico Termistor NTC. $4500
 o	I+D Didáticas y electrónica. Sensor de temperatura y humedad AHT21B $15200
 	https://didacticaselectronicas.com/~didactic/index.php/component/virtuemart/view/productdetails/virtuemart_product_id/11144/virtuemart_category_id/42
 
-### Sensor de movimiento PIR
-o	Bigtrónica. $5200
-	https://www.bigtronica.com/sensores/distancia-movimiento/161-sensor-de-movimiento-pir-5053212001612.html?search_query=PIR&results=35
-
-o	I+D Didácticas Electrónica: $5200
-
-### Modulo Sensor de Sonido KY -038
-o	Bigtrónica: $3500
-	https://www.bigtronica.com/sensores/sonido/120-tarjeta-sensor-de-sonido-5053212001209.html?search_query=sensor+de+sonido&results=292
+### Sensor infrarrojo IR
+o	I+D Didáticas Electrónicas. $3400
+	https://www.didacticaselectronicas.com/index.php/view/productdetails/virtuemart_product_id/6855/virtuemart_category_id/355
 
 ### Sensor de Luz LDR:
 o	Bigtrónica: $3200
@@ -215,7 +205,7 @@ o	Bigtrónica: $3200
 Herramientas y Equipos:
 -	Visual Studio - Raspberry Pi Pico
 -	Fusion 360 – Diseño de Prototipo
--	Fuentes de Laboratorio
+-	Fuente de 19.4 voltios con regulador de voltaje de 5 voltios y 9 voltios
 
 Costos de Diseño y Prototipado:
 -	Cortadora Laser disponible en el laboratorio de prototipado de la Universidad de Antioquia

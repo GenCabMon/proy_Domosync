@@ -1,112 +1,180 @@
 /**
  * @file main_pico.c
  * @version 1.0
- * @date 2024-10-07
- * @author Leyder Homero Marcillo Mera y Nelson Mauricio García López
- * @title Sistema de acceso
- * @brief El sistema de control de acceso cuenta con una base de datos de usuarios, donde cada usuario tiene un
- * identificador de ID y una contraseña asociada de 4 dígitos. Para otorgar acceso al usuario,
- * este deberá ingresar un ID de 6 dígitos y una contraseña de 4 dígitos. El sistema buscará en su base de datos el ID,
- * y si lo encuentra, comparará la contraseña ingresada con la contraseña del usuario. Si el ID se encuentra en la base
- * de datos y la contraseña coincide con la contraseña del usuario, entonces el sistema otorga el acceso.
- * La concesión del acceso se indicará encendiendo un LED verde durante 10 segundos. Si el ID del usuario no existe o
- * la contraseña es incorrecta, este evento se indicará encendiendo un LED rojo durante 3 segundos. En cualquier caso,
- * el sistema siempre debe recibir tanto el ID del usuario como su contraseña antes de indicar un intento de acceso
- * fallido. Si un usuario con ID ingresa la contraseña incorrectamente más de 3 veces consecutivas, no necesariamente
- * simultáneamente, el usuario es bloqueado permanentemente del sistema.
- * Otras características del sistema: El proceso de verificación de identidad tiene un tiempo máximo de 10 segundos para
- * ingresar tanto el DNI del usuario como su respectiva contraseña. Si el usuario no logra ingresar la información
- * requerida dentro de este tiempo, el sistema regresará al estado inicial, señalando con un LED rojo que el proceso
- * falló. Tanto el DNI como la contraseña deben ingresarse sin errores. No se pueden borrar dígitos. En caso de error, el
- * usuario debe terminar de ingresar el total de 10 dígitos requeridos (6 DNI + 4 contraseña) o esperar a que pase el
- * tiempo máximo de ingreso y el sistema regrese al estado inicial.
- * Un LED amarillo encendido de manera continua indicará que el sistema está listo para recibir el DNI del usuario.
- * Cuando el usuario presiona el primer dígito de su DNI, el LED se apaga, indicando que se inició el proceso de
- * verificación de identidad. Cuando el usuario ingresa los seis dígitos del DNI, el LED amarillo comienza a parpadear
- * (encendido y apagado) a una frecuencia de 0.5Hz hasta que el usuario ingresa el cuarto dígito de la contraseña.
- * En ese momento, el LED amarillo se apaga y solo se vuelve a encender cuando finaliza la señalización de contraseña
- * correcta (LED verde - 10 * seg) o contraseña incorrecta (LED rojo - 3 seg).
- * El sistema debe tener una base de datos de al menos 10 usuarios diferentes con sus respectivas contraseñas.
- * */
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <math.h>
-#include "pico/stdlib.h"
-#include "hardware/timer.h"
-#include "hardware/pwm.h"
-#include "hardware/irq.h"
-#include "hardware/gpio.h"
-#include "hardware/sync.h"
-#include "hardware/adc.h"
-#include "lcd_i2c.h"
-#include "base_de_datos.h"
-
-// Constantes para control de servomotor
-#define BUTTON 17
-#define Servo_PIN 16
-
-#define ROTATE_0 1000 // Rotate to 0° position
-#define ROTATE_180 2000
-
-#define PWM_DIV_INTEGER 125
-#define PWM_DIV_FRAC 0
-#define PWM_TOP_VALUE 19999
-
-#define MAX_DUTY_CYCLE 0.1
-#define MIN_DUTY_CYCLE 0.05
-#define DEBOUNCE_TIME_US 3000000 // Tiempo de anti-rebote en microsegundos (300 ms)
-
-volatile int servo_angle = 0;
-volatile uint64_t last_interrupt_time_LDR = 0; // Marca de tiempo de la última interrupción
-volatile uint64_t last_interrupt_time_MD = 0;  // Marca de tiempo de la última interrupción
-volatile bool enable_timer_servo = false;
-volatile uint64_t last_interrupt_time = 0;
-
-/*  0 Default (No ha hecho intentos de acceso aún)
-    1 Acceso denegado
-    2 Acceso concedido
-    3 Clave ha sido cambiada
-    4 Clave no ha sido cambiada*/  
-uint8_t accessState = 0; 
-float temperature = 0;
-float duty_cycle = 0;
-uint8_t keyPressed = 255; // 0x0 a 0xF son teclas, 255 es Ninguna tecla
-
-// Constantes para sistema de acceso matriz
-#define YELLOW_LED 11
-#define GREEN_LED 12
-#define RED_LED 13
-#define PIN_IR 19
-#define PIN_LDR 18
-#define PIN_2_applauses 21
-#define PIN_3_applauses 20
-const uint32_t mask_flags = (1 << 18) | (1 << 19) | (1 << 20) | (1 << 21);
-
-// Constantes del controlador PID, sensor de temperatura
-#define KP 8         // Ganancia proporcional
-#define KI 0.3        // Ganancia integral
-#define KD 0.1        // Ganancia derivativa
-#define SETPOINT 26.0 // Temperatura deseada en °C
-#define PIN_PWM 10
-#define ADC_CLKDIV 47999
-#define AMP_GAIN 5
-#define ADC_VREF 3.3
-#define ADC_RESOL 4096
-
-// Variables globales para el sensor de temperatura
-float integral = 0;
-float last_error = 0;
-volatile uint16_t counter_fifo = 0;
-volatile uint16_t adc_raw;
-
-/**
- * @brief Union para controlar el estado de las teclas interrupciones leds y estado de interrupciones
+ * @date 2024-12-12
+ * @title Sistema de acceso y control de flujo de sensores
+ * @brief Este archivo contiene el código fuente para el control de un sistema de acceso inteligente utilizando un microcontrolador Raspberry Pi Pico.
+ * 
+ * Este sistema permite la gestión de accesos a través de un teclado matricial, un lector de temperatura y control de un ventilador, ademas el control de luces y un servo motor. 
+ * Además, se implementan diversas funcionalidades como la lectura de un sensor de temperatura, control de luces, manejo de contraseñas de usuarios y un sistema de alarmas. 
+ * La comunicación con dispositivos periféricos como pantallas LCD y otros módulos de hardware es realizada en este archivo.
+ * 
+ * @section Descripción General
+ * Este sistema de acceso realiza las siguientes funciones:
+ * - Inicializa los módulos de entrada/salida del sistema (GPIO).
+ * - Configura un ADC para leer valores del sensor de temperatura.
+ * - Usa un teclado matricial 4x4 para recibir entradas de usuario.
+ * - Controla un servo motor para abrir una puerta de acceso.
+ * - Muestra información sobre el estado del sistema en un LCD.
+ * - Utiliza un sistema de interrupciones para manejar eventos como la lectura del ADC, cambios en el teclado y el control del servo.
+ * 
+ * @section Estructura del código
+ * - `main()` es la función principal que ejecuta la inicialización de hardware, configura interrupciones y maneja el ciclo principal del sistema.
+ * - Varias funciones auxiliares se encargan de tareas específicas como el control de contraseñas, la configuración del PWM para el servo y la gestión de interrupciones.
  */
 
-struct repeating_timer timer; // timer para alarma de toggle led amarillo
-struct repeating_timer timer_servo;
+#include <stdint.h>       /**< Tipos de datos enteros estándar. */
+#include <stdbool.h>      /**< Tipos de datos booleanos estándar. */
+#include <stdio.h>        /**< Funciones estándar de entrada/salida. */
+#include <math.h>         /**< Funciones matemáticas estándar. */
+#include "pico/stdlib.h"  /**< Biblioteca estándar de Raspberry Pi Pico. */
+#include "hardware/timer.h" /**< Funciones para control de temporizadores de hardware. */
+#include "hardware/pwm.h"  /**< Funciones para control de PWM de hardware. */
+#include "hardware/irq.h"  /**< Manejo de interrupciones de hardware. */
+#include "hardware/gpio.h" /**< Funciones para control de pines GPIO de hardware. */
+#include "hardware/sync.h" /**< Funciones de sincronización de hardware. */
+#include "hardware/adc.h"  /**< Control de conversión ADC en hardware. */
+#include "lcd_i2c.h"       /**< Biblioteca para control de LCD mediante comunicación I2C. */
+#include "base_de_datos.h" /**< Arrays de datos para análisis de ingreso de personas a la casa. */
 
+
+/** @def BUTTON
+ *  @brief Pin GPIO para el botón de control del servomotor.
+ */
+#define BUTTON 17
+
+/** @def Servo_PIN
+ *  @brief Pin GPIO para el control del servomotor.
+ */
+#define Servo_PIN 16
+
+/** @def ROTATE_0
+ *  @brief Ciclo de trabajo PWM para rotar el servomotor a 0°.
+ */
+#define ROTATE_0 1000
+
+/** @def ROTATE_180
+ *  @brief Ciclo de trabajo PWM para rotar el servomotor a 180°.
+ */
+#define ROTATE_180 2000
+
+/** @def PWM_DIV_INTEGER
+ *  @brief Divisor entero del reloj para el módulo PWM.
+ */
+#define PWM_DIV_INTEGER 125
+
+/** @def PWM_DIV_FRAC
+ *  @brief Parte fraccionaria del divisor del reloj PWM.
+ */
+#define PWM_DIV_FRAC 0
+
+/** @def PWM_TOP_VALUE
+ *  @brief Valor máximo del temporizador PWM.
+ */
+#define PWM_TOP_VALUE 19999
+
+/** @def MAX_DUTY_CYCLE
+ *  @brief Máximo ciclo de trabajo permitido (10%).
+ */
+#define MAX_DUTY_CYCLE 0.1
+
+/** @def MIN_DUTY_CYCLE
+ *  @brief Mínimo ciclo de trabajo permitido (5%).
+ */
+#define MIN_DUTY_CYCLE 0.05
+
+/** @def DEBOUNCE_TIME_US
+ *  @brief Tiempo de anti-rebote para el botón, en microsegundos.
+ */
+#define DEBOUNCE_TIME_US 3000000 // Tiempo de anti-rebote en microsegundos (300 ms)
+
+/** @def YELLOW_LED
+ *  @brief Pin GPIO del LED amarillo.
+ */
+#define YELLOW_LED 11
+
+/** @def GREEN_LED
+ *  @brief Pin GPIO del LED verde.
+ */
+#define GREEN_LED 12
+
+/** @def RED_LED
+ *  @brief Pin GPIO del LED rojo.
+ */
+#define RED_LED 13
+
+/** @def PIN_IR
+ *  @brief Pin GPIO para recibir la señal del sensor infrarrojo.
+ */
+#define PIN_IR 19
+
+/** @def PIN_LDR
+ *  @brief Pin GPIO para recibir la señal del sensor LDR (Light Dependent Resistor).
+ */
+#define PIN_LDR 18
+
+/** @def PIN_2_applauses
+ *  @brief Pin GPIO asociado a la detección de dos aplausos.
+ */
+#define PIN_2_applauses 21
+
+/** @def PIN_3_applauses
+ *  @brief Pin GPIO asociado a la detección de tres aplausos.
+ */
+#define PIN_3_applauses 20
+
+/** @def KP
+ *  @brief Constante proporcional del controlador PID.
+ */
+#define KP 8         // Ganancia proporcional
+
+/** @def KI
+ *  @brief Constante integral del controlador PID.
+ */
+#define KI 0.3        // Ganancia integral
+
+/** @def KD
+ *  @brief Constante derivativa del controlador PID.
+ */
+#define KD 0.1        // Ganancia derivativa
+
+/** @def SETPOINT
+ *  @brief Temperatura deseada en grados Celsius.
+ */
+#define SETPOINT 26.0 // Temperatura deseada en °C
+
+/** @def PIN_PWM
+ *  @brief Pin GPIO utilizado para generar señal PWM.
+ */
+#define PIN_PWM 10
+
+/** @def ADC_CLKDIV
+ *  @brief Divisor de reloj para el ADC.
+ */
+#define ADC_CLKDIV 47999
+
+/** @def AMP_GAIN
+ *  @brief Ganancia del amplificador en el circuito ADC.
+ */
+#define AMP_GAIN 5
+
+/** @def ADC_VREF
+ *  @brief Referencia de voltaje del ADC en voltios para el LM35.
+ */
+#define ADC_VREF 3.3
+
+/** @def ADC_RESOL
+ *  @brief Resolución del ADC (valores discretos).
+ */
+#define ADC_RESOL 4096
+
+/**
+ * @typedef myFlags_t
+ * @brief Unión que encapsula banderas de control y su acceso mediante bits individuales.
+ *
+ * Esta unión permite controlar diversas banderas del sistema mediante un único valor de 16 bits.
+ * El acceso se realiza a través de la estructura de bits interna o directamente mediante el valor entero.
+ */
 typedef union
 {
     uint16_t W;
@@ -132,22 +200,57 @@ typedef union
     } B;
 } myFlags_t;
 
-volatile myFlags_t gFlags; //= {false, false, false, false, false, false, false, false, false, false, false, false};
 
-volatile uint8_t gKeyCnt = 0;
-volatile uint8_t gSeqCnt = 0;
-volatile bool gDZero = false;
-volatile uint32_t gKeyCap;
+volatile int servo_angle = 0; /**< Ángulo actual del servomotor. */
+volatile uint64_t last_interrupt_time_LDR = 0; /**< Marca de tiempo de la última interrupción del sensor LDR. */
+volatile uint64_t last_interrupt_time_MD = 0;  /**< Marca de tiempo de la última interrupción de la puerta principal. */
+volatile bool enable_timer_servo = false; /**< Bandera para habilitar el temporizador del servomotor. */
+volatile uint64_t last_interrupt_time = 0; /**< Marca de tiempo de la última interrupción general. */
 
-volatile bool timer_fired = false; // bandera indica si el usuario ingreso los 10 digitos antes de los 10 segundos
-// true= ya pasaron los 10 segundos
+uint8_t accessState = 0; /**< Estado actual del sistema de acceso. */
+float temperature = 0; /**< Temperatura medida por el sensor en grados Celsius. */
+float duty_cycle = 0; /**< Ciclo de trabajo actual del PWM. */
+uint8_t keyPressed = 255; /**< Última tecla presionada (0x0 a 0xF para teclas, 255 para ninguna tecla). */
 
-int8_t idxID;
-int8_t IschangeP = 0;
-int8_t IsShow = 0;
-int8_t IsnowP = 0;
-int8_t IsnowP_2 = 0;
 
+const uint32_t mask_flags = (1 << 18) | (1 << 19) | (1 << 20) | (1 << 21); /**< Máscara de bits para pines relacionados con sensores. */
+
+float integral = 0; /**< Valor integral acumulado para el controlador PID. */
+float last_error = 0; /**< Último error registrado por el controlador PID. */
+volatile uint16_t counter_fifo = 0; /**< Contador de muestras almacenadas en el FIFO del ADC. */
+volatile uint16_t adc_raw; /**< Valor bruto del ADC leído. */
+
+
+struct repeating_timer timer; /**< Temporizador utilizado para la alarma. */
+struct repeating_timer timer_servo; /**< Temporizador utilizado para el servomotor. */
+
+volatile myFlags_t gFlags; /**< Estructura de banderas globales. */
+
+volatile uint8_t gKeyCnt = 0; /**< Contador de teclas presionadas. */
+volatile uint8_t gSeqCnt = 0; /**< Contador de secuencia del sistema de acceso. */
+volatile bool gDZero = false; /**< Bandera para indicar si el sistema está en el estado de valor 0. */
+volatile uint32_t gKeyCap; /**< Captura de valor clave del sistema. */
+
+volatile bool timer_fired = false; /**< Bandera para indicar si pasaron 10 segundos sin ingresar una clave. */
+
+int8_t idxID; /**< Índice de ID actual para la verificación de clave. */
+int8_t IschangeP = 0; /**< Estado de cambio de clave (0: no, 1: sí). */
+int8_t IsShow = 0; /**< Indicador de estado de visualización (0: no mostrar, 1: mostrar). */
+int8_t IsnowP = 0; /**< Estado de clave actual del usuario. */
+int8_t IsnowP_2 = 0; /**< Estado de la segunda clave ingresada del usuario. */
+
+bool changePas = false; /**< Bandera para cambiar la dinámica de la captura de dígitos, permitiendo capturar solo 4 para la nueva contraseña. */
+bool timer_toggle = false; /**< Bandera para indicar cuándo se debe cancelar el `repeating_timer_ms`. */
+bool open = false;/**< Bandera para indicar si el sistema está abierto. */
+
+
+/**
+ * @brief Inicializa el PWM en el pin GPIO especificado.
+ *
+ * Configura el pin GPIO para usar PWM, ajusta el divisor de reloj y establece el valor tope.
+ *
+ * @param PWM_GPIO Pin GPIO que se utilizará para el PWM.
+ */
 void project_pwm_init(uint PWM_GPIO)
 {
     gpio_init(PWM_GPIO);
@@ -159,6 +262,14 @@ void project_pwm_init(uint PWM_GPIO)
     pwm_init(sliceNum, &cfg, true);
 }
 
+/**
+ * @brief Configura el ángulo del servo en el pin GPIO especificado.
+ *
+ * Calcula el ciclo de trabajo en función del ángulo proporcionado.
+ *
+ * @param PWM_GPIO Pin GPIO asociado al servo.
+ * @param degree Ángulo del servo en grados (0 o 90).
+ */
 void set_servo_angle(uint PWM_GPIO, uint degree)
 {
     const uint count_top = PWM_TOP_VALUE;
@@ -166,15 +277,13 @@ void set_servo_angle(uint PWM_GPIO, uint degree)
     pwm_set_gpio_level(PWM_GPIO, (uint16_t)(duty_cycle * (count_top + 1)));
 
     uint sliceNum = pwm_gpio_to_slice_num(PWM_GPIO);
-    // printf("*** PWM channel: %d ", pwm_get_counter(sliceNum));
 }
 
 /**
- * @brief captura la clave de los 10 digitos y los desplaza hacia la derecha
+ * @brief Inserta una nueva tecla en la cola de teclas desplazando las existentes.
  *
- * @param key letra capturada con el teclado ya decifrada
+ * @param key Tecla a insertar en la cola.
  */
-
 void insertKey(uint8_t key)
 {
     for (int i = 9; i > 0; i--)
@@ -185,11 +294,11 @@ void insertKey(uint8_t key)
 }
 
 /**
- * @brief decifra la tecla asociada a la interrupcion asociandola a alguno de los casos posibles
+ * @brief Decodifica el valor del teclado a un valor correspondiente según una tabla predefinida.
  *
- * @param key letra capturada con la interrupcion
+ * @param keyc Código de la tecla capturado.
+ * @return uint8_t Valor decodificado de la tecla o 0xFF si no coincide.
  */
-
 uint8_t keyDecode(uint32_t keyc)
 {
     uint8_t keyd = 0xFF;
@@ -251,12 +360,12 @@ uint8_t keyDecode(uint32_t keyc)
 }
 
 /**
- * @brief Chequea si el usuario esta en la base de datos
- * @param vecID arreglo que contiene los IDs de los usuarios en la base de datos
- * @param ID ID capturado con el teclado
- * @return -1 si no se encontro en la base de datos
+ * @brief Verifica si un ID específico coincide con uno en la lista de IDs.
+ *
+ * @param vecID Vector de IDs registrados.
+ * @param ID ID a verificar.
+ * @return int8_t Índice del ID en la lista o -1 si no se encuentra.
  */
-
 int8_t checkID(uint8_t *vecID, uint8_t *ID)
 {
     for (int i = 0; i < 10; i++)
@@ -278,18 +387,17 @@ int8_t checkID(uint8_t *vecID, uint8_t *ID)
     }
     return -1;
 }
-bool changePas = false; // bandera para cambiar la dinamica de la captura de los digitos solo captura 4 para la nueva
-// contrasena
 
 /**
- * @brief Chequeo de la contrasena asociada al mismo ID y verifica si la contrasena es FFFF se cambia la contrasena
- * del susuario
- * @param idxID ID asociado a la contrasena en cuestion
- * @param vecPSWD arreglo que contiene las contrasenas en la base de datos
- * @param PSWD contrasena capturada por el teclado
- * @return true si la contrasena coincide con el usuario asociado en la base de datos
+ * @brief Verifica si la contraseña es válida para un ID y maneja cambios de contraseña.
+ *
+ * @param idxID Índice del ID en la lista.
+ * @param vecPSWD Vector de contraseñas registradas.
+ * @param PSWD Contraseña ingresada.
+ * @param IschangeP Bandera para indicar si se solicita cambio de contraseña.
+ * @return true Si la contraseña es válida o si se permite el cambio.
+ * @return false Si la contraseña es inválida.
  */
-
 bool checkPSWD(int8_t idxID, uint8_t *vecPSWD, uint8_t *PSWD, uint8_t IschangeP)
 {
     if (hKeys[0] == 0xF && hKeys[1] == 0xF && hKeys[2] == 0xF && hKeys[3] == 0xF)
@@ -336,13 +444,12 @@ bool checkPSWD(int8_t idxID, uint8_t *vecPSWD, uint8_t *PSWD, uint8_t IschangeP)
 }
 
 /**
- * @brief función para cambiar la contraseña de un usuario
- * @param idxID ID asociado a la contraseña en cuestión
- * @param vecPSWD arreglo que contiene las contrasenas en la base de datos
- * @param PSWD contraseña capturada por el teclado
- * @return true si la contraseña coincide con el usuario asociado en la base de datos
+ * @brief Cambia la contraseña de un usuario específico.
+ *
+ * @param idxID Índice del ID del usuario.
+ * @param vecPSWD Vector de contraseñas registradas.
+ * @param PSWD Nueva contraseña a establecer.
  */
-
 void ChangePSW(int8_t idxID, uint8_t *vecPSWD, uint8_t *PSWD)
 {
     int cont_F = 0;
@@ -391,13 +498,14 @@ void ChangePSW(int8_t idxID, uint8_t *vecPSWD, uint8_t *PSWD)
 }
 
 /**
- * @brief alarma que se activa a los 10 segundos indicando el tiempo se acabo y encinde el led rojo
- * @param id Es un identificador único de la alarma que disparó la función de callback.
- * @param user_data Es un puntero genérico que se pasa a la función de callback para almacenar datos
- * personalizados del usuario.
- * @return 0, puede ser modificado en un futuro
+ * @brief Llama al callback de alarma del teclado.
+ *
+ * Establece un indicador de tiempo de espera y reinicia el temporizador.
+ *
+ * @param id Identificador de la alarma.
+ * @param user_data Datos adicionales proporcionados al callback, identificador adicional.
+ * @return int64_t Tiempo en microsegundos para la próxima alarma.
  */
-
 int64_t alarm_callback_teclado(alarm_id_t id, __unused void *user_data)
 {
     if (timer_fired)
@@ -412,13 +520,14 @@ int64_t alarm_callback_teclado(alarm_id_t id, __unused void *user_data)
     return 0;
 }
 
-bool timer_toggle = false; // Bandera para saber cuando debo cancelar el repeating_timer_ms
-
 /**
- * @brief timer para titilar el led amarillo
- * @param t puntero a la estructura para controlar el led amarillo
+ * @brief Maneja los eventos de un temporizador repetitivo.
+ *
+ * Alterna el estado del temporizador servo el evento corresponda.
+ *
+ * @param t Puntero a la estructura del temporizador.
+ * @return true Para continuar el temporizador.
  */
-
 bool repeating_timer_callback(struct repeating_timer *t)
 {
     if (t == &timer)
@@ -433,12 +542,10 @@ bool repeating_timer_callback(struct repeating_timer *t)
 }
 
 /**
- * @brief Interrupciones del pwm
- * Slice 0 Se usa para generar una secuencia de filas, para un teclado matricial.
- * Slice 1 Se usa para el temporizador de antirrebote (debouncing).
- * Manejo de errores: Un bloque default asegura que cualquier interrupción inesperada sea capturada
+ * @brief Interrupción del módulo PWM para manejar diferentes eventos.
+ *
+ * Maneja las interrupciones según el estado del PWM y actualiza las variables globales.
  */
-
 void pwmIRQ(void)
 {
     uint32_t gpioValue;
@@ -462,12 +569,14 @@ void pwmIRQ(void)
 }
 
 /**
- * @brief Se inicializa y  se configura el pwm
- * @param slice número del slice del pwm
- * @param milis tiempo en milisegundos que se desea
- * @param enable configurar automaticamente o manual
+ * @brief Inicializa el PWM como temporizador periódico (PIT).
+ *
+ * Configura un slice del PWM para generar interrupciones periódicas.
+ *
+ * @param slice Slice del PWM a configurar.
+ * @param milis Período en milisegundos.
+ * @param enable Habilita o deshabilita el slice.
  */
-
 void initPWMasPIT(uint8_t slice, uint16_t milis, bool enable)
 {
     assert(milis <= 262); ///< PWM can manage interrupt periods greater than 262 milis
@@ -485,6 +594,14 @@ void initPWMasPIT(uint8_t slice, uint16_t milis, bool enable)
     pwm_init(slice, &cfg, enable);
 }
 
+/**
+ * @brief Callback para manejar interrupciones en pines GPIO específicos.
+ *
+ * Actualiza banderas globales en respuesta a cambios de estado de los pines GPIO.
+ *
+ * @param gpio Pin GPIO que generó la interrupción.
+ * @param events Eventos asociados a la interrupción.
+ */
 void gpio_callback(uint gpio, uint32_t events)
 {
     if (gpio == PIN_IR && (events & GPIO_IRQ_EDGE_FALL))
@@ -541,6 +658,12 @@ void gpio_callback(uint gpio, uint32_t events)
     gpio_acknowledge_irq(gpio, events);
 }
 
+/**
+ * @brief Inicializa las banderas de GPIO y configura las interrupciones asociadas.
+ *
+ * Configura las entradas con resistencia pull-down y habilita histeresis en los pines
+ * relacionados con IR, LDR, y sensores de aplausos.
+ */
 void flags_pico_init()
 {
     gpio_init_mask(mask_flags);
@@ -560,10 +683,11 @@ void flags_pico_init()
 }
 
 /**
- * @brief inicializa el teclado, los gpios y las interrupciones asociadas
+ * @brief Inicializa el teclado matricial 4x4 configurando filas y columnas.
  *
+ * Las filas (GPIOs 2 a 5) se configuran como salidas y las columnas (GPIOs 6 a 9)
+ * como entradas con interrupciones asociadas a flancos ascendentes.
  */
-
 void initMatrixKeyboard4x4(void)
 {
     // GPIOs 5 to 2 control keyboard rows (one hot sequence)
@@ -589,6 +713,15 @@ void initMatrixKeyboard4x4(void)
     gpio_set_irq_enabled_with_callback(9, GPIO_IRQ_EDGE_RISE, true, gpio_callback);
 }
 
+
+/**
+ * @brief Controlador PID que calcula la salida basada en el error actual del sensor de temperatura LM35.
+ *
+ * Calcula los términos proporcional, integral y derivativo para ajustar la salida.
+ *
+ * @param error Diferencia entre el valor deseado y el actual.
+ * @return float Salida ajustada dentro del rango [0, 100].
+ */
 float PID_controller(float error)
 {
     integral += error; // Calcular término integral
@@ -608,6 +741,11 @@ float PID_controller(float error)
     return output;
 }
 
+/**
+ * @brief Maneja las interrupciones del ADC.
+ *
+ * Incrementa un contador y obtiene el valor del FIFO del ADC cuando el contador alcanza 200.
+ */
 void adc_handler()
 {
     counter_fifo += 1;
@@ -619,7 +757,12 @@ void adc_handler()
     }
 }
 
-bool open = false;
+/**
+ * @brief Cierra la puerta principal si ha pasado el tiempo de rebote y está abierta.
+ *
+ * Comprueba el tiempo transcurrido desde la última interrupción y ajusta el servo
+ * para cerrar la puerta si está abierta.
+ */
 void close()
 {
     uint64_t current_time = time_us_64(); // Tiempo actual en microsegundos
@@ -633,14 +776,18 @@ void close()
     }
     
 }
-//
+
 /**
- * @brief Función principal del programa.
+ * @brief Función principal que gestiona el funcionamiento de un sistema de acceso y control de luces basado en un teclado, sensores y servomotor.
+ * 
+ * La función principal configura e inicializa diversos periféricos y controladores en el sistema, incluidos ADC, PWM, teclados matriciales, y el servomotor. 
+ * Luego entra en un bucle infinito donde maneja el flujo de eventos como la captura de teclas, la verificación de contraseñas, el control de acceso, 
+ * y la gestión de las luces y otros dispositivos según el estado de los sensores y entradas del usuario.
+ * 
+ * El proceso se realiza mediante interrupciones, temporizadores y flags que indican el estado de las operaciones. 
+ * La función también maneja la interacción con una pantalla LCD para mostrar información al usuario.
  *
- * Inicializa los componentes, asigna una interrupcion exclusiva al pwm, asigna prioridad a las interrupciones del pwm
- * contiene el ciclo que realiza todo el sistema de acceso, desde que se comienzan a recibir los datos del teclado, hasta que
- * se encienden los leds segun el caso que ocurra.
- *
+ * @note El sistema utiliza varios timers y GPIOs para manejar las señales y eventos, incluyendo un control PID para ajustar la temperatura a un valor objetivo.
  */
 
 int main()
