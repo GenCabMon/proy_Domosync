@@ -39,7 +39,6 @@
 #include "hardware/gpio.h"
 #include "hardware/sync.h"
 #include "hardware/adc.h"
-#include "gpio_led.h"
 #include "lcd_i2c.h"
 
 // Constantes para control de servomotor

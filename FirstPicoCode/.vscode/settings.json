@@ -26,7 +26,7 @@
   "files.associations": {
     "stdlib.h": "c",
     "base_de_datos.h": "c",
-    "digiElements.h": "c",
+    "digi_elements.h": "c",
     "time.h": "c",
     "gpio.h": "c",
     "timer.h": "c",
@@ -35,9 +35,10 @@
     "stdio.h": "c",
     "sync.h": "c",
     "adc.h": "c",
-    "measurelibs.h": "c",
-    "configpwm.h": "c",
-    "math.h": "c"
+    "measure_libs.h": "c",
+    "config_pwm.h": "c",
+    "math.h": "c",
+    "measure_libs.h": "c"
   },
   "C_Cpp.errorSquiggles": "disabled"
 }

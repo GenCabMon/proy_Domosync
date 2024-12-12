@@ -1,4 +1,4 @@
-#include "digielements.h"
+#include "digi_elements.h"
 
 // Funciones de inicialización de sensores
 void set_up_LDR()

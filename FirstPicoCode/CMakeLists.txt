@@ -15,10 +15,10 @@ pico_sdk_init()
 # Add the executable target
 add_executable(measure
         measure.c
-        measurelibs.c
+        measure_libs.c
         base_de_datos.c
-        digiElements.c
-        configpwm.c
+        digi_elements.c
+        config_pwm.c
 )
 
 string(APPEND CMAKE_EXE_LINKER_FLAGS "-Wl,--print-memory-usage")

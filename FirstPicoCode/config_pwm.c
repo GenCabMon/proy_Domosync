@@ -1,4 +1,4 @@
-#include "configpwm.h"
+#include "config_pwm.h"
 
 volatile uint64_t last_interrupt_time = 0; /**< Marca de tiempo de la última interrupción. */
 

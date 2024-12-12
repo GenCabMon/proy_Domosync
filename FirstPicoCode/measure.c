@@ -7,11 +7,11 @@
 #include "hardware/gpio.h" /**< Configuración y control de pines GPIO. */
 #include "hardware/irq.h"  /**< Manejo de interrupciones en el hardware. */
 #include "hardware/sync.h" /**< Funciones de sincronización del hardware. */
-#include "measurelibs.h"   /**< Librería personalizada para realizar mediciones específicas. */
+#include "measure_libs.h"   /**< Librería personalizada para realizar mediciones específicas. */
 #include "base_de_datos.h" /**< Librería personalizada para gestionar la base de datos de usuarios. */
 #include "hardware/pwm.h"  /**< Control del módulo PWM en la Raspberry Pi Pico. */
-#include "digiElements.h"  /**< Librería personalizada de inicialización de sensores y actuadores digitales */
-#include "configpwm.h"     /**< Librería personalizada de configuración y uso de PWM */
+#include "digi_elements.h"  /**< Librería personalizada de inicialización de sensores y actuadores digitales */
+#include "config_pwm.h"     /**< Librería personalizada de configuración y uso de PWM */
 
 /**
  * @brief Valor de referencia de voltaje para la conversión ADC.
