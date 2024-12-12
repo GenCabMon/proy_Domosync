@@ -92,7 +92,7 @@
 /** @def SETPOINT
  *  @brief Temperatura deseada en grados Celsius.
  */
-#define SETPOINT 26.0 // Temperatura deseada en °C
+#define SETPOINT 27.0 // Temperatura deseada en °C
 
 /** @def PIN_PWM
  *  @brief Pin GPIO utilizado para generar señal PWM.

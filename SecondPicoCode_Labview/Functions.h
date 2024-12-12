@@ -15,7 +15,7 @@
 /** @def KP
  *  @brief Constante proporcional del controlador PID.
  */
-#define KP 8 // Ganancia proporcional
+#define KP 6 // Ganancia proporcional
 
 /** @def KI
  *  @brief Constante integral del controlador PID.
