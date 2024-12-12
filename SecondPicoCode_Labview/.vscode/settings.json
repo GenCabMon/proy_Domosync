@@ -24,6 +24,12 @@
   "cmake.generator": "Ninja",
   "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
   "files.associations": {
-    "*.h": "c"
+    "gpio.h": "c",
+    "stdbool.h": "c",
+    "sync.h": "c",
+    "irq.h": "c",
+    "timer.h": "c",
+    "PRUEBALCD.C": "cpp",
+    "stdlib.h": "c"
   }
 }
